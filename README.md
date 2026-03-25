@@ -31,11 +31,9 @@
 ### 安装
 
 ```bash
-# 克隆项目
-git clone <repository-url>
-cd ai_learning_system
 
 # 安装依赖
+cd ai_learning_system
 pip install -r requirements.txt
 ```
 
@@ -43,6 +41,7 @@ pip install -r requirements.txt
 
 ```bash
 # 启动游戏
+cd ai_learning_system
 python main.py
 ```
 
@@ -170,6 +169,9 @@ ai_learning_system/
 - **llama-cpp-python**: 本地LLM推理（可选）
 - **FastAPI**: Web API框架（可选）
 
+## ♾️ Bug
+-目前还有隐藏的部分Bug
+
 ## 📝 配置说明
 
 ### 模型配置
@@ -184,7 +186,7 @@ ai_learning_system/
 
 ## 🤝 贡献指南
 
-欢迎提交Pull Request！请确保：
+欢迎提交！请确保：
 1. 代码符合PEP 8规范
 2. 添加必要的注释
 3. 测试游戏功能正常
