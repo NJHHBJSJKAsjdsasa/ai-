@@ -44,7 +44,7 @@ class ExplorationHandler(BaseHandler):
                         "description": getattr(item, 'description', f'这是一件{item.rarity.value}的{item.item_type.value}'),
                         "type": item.item_type.value,
                         "rarity": item.rarity.value,
-                        "effects": list(getattr(item, 'effects', {}).keys()) if hasattr(item, 'effects') else [],
+                        "effects": getattr(item, 'effects', []) if isinstance(getattr(item, 'effects', []), list) else list(getattr(item, 'effects', {}).keys()),
                         "value": getattr(item, 'attributes', {}).get('power', 100) * 10,
                         "stackable": True,
                         "max_stack": 99,
