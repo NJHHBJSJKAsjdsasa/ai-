@@ -905,9 +905,22 @@ class Player:
                     self.inventory.items = inv_data.get("items", {})
                     self.inventory.generated_items = inv_data.get("generated_items", {})
                     self.inventory.max_slots = inv_data.get("max_slots", 50)
+                    
+                    # 修复：如果generated_items为空，从items中重建
+                    if not self.inventory.generated_items and self.inventory.items:
+                        for item_name, item_info in self.inventory.items.items():
+                            item_data = item_info.get("data", {})
+                            if item_data:
+                                self.inventory.generated_items[item_name] = item_data
                 else:
                     # 旧格式直接是items字典
                     self.inventory.items = inv_data
+                    
+                    # 修复：从items中重建generated_items
+                    for item_name, item_info in self.inventory.items.items():
+                        item_data = item_info.get("data", {})
+                        if item_data:
+                            self.inventory.generated_items[item_name] = item_data
         
         # 加载装备数据
         if "equipped" in data:
