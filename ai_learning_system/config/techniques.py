@@ -76,6 +76,24 @@ class Technique:
             "cooldown": self.cooldown,
             "damage_type": self.damage_type.value
         }
+    
+    def get_effect_description(self) -> str:
+        """获取功法效果描述"""
+        effect_desc = "\n".join([f"- {effect}" for effect in self.effects])
+        return effect_desc if effect_desc else "无特殊效果"
+    
+    def get_special_abilities_description(self) -> str:
+        """获取特殊能力描述"""
+        ability_desc = "\n".join([f"- {ability}" for ability in self.special_abilities])
+        return ability_desc if ability_desc else "无特殊能力"
+    
+    def can_use(self, user_realm_level: int, user_spiritual_power: int) -> bool:
+        """检查是否可以使用该功法"""
+        if user_realm_level < self.realm_required:
+            return False
+        if user_spiritual_power < self.mana_cost:
+            return False
+        return True
 
 
 # 境界等级映射
@@ -271,6 +289,23 @@ TECHNIQUES_DB: Dict[str, Technique] = {
         mana_cost=12,
         damage_type=DamageType.PHYSICAL
     ),
+    
+    "狐仙决": Technique(
+        name="狐仙决",
+        description="青丘山狐仙传承功法，修炼后可化形变化，魅惑敌人。",
+        technique_type=TechniqueType.CULTIVATION,
+        element=ElementType.WOOD,
+        realm_required=2,  # 筑基期
+        effects=["化形变化", "魅惑敌人", "速度提升"],
+        learning_difficulty=65,
+        cultivation_speed_bonus=0.15,
+        combat_power_bonus=0.25,
+        special_abilities=["狐火", "魅惑术", "化形"],
+        origin="青丘山狐仙传承",
+        is_combat_skill=True,
+        mana_cost=15,
+        damage_type=DamageType.MAGIC
+    ),
 }
 
 
@@ -346,22 +381,15 @@ def can_learn_technique(technique_name: str, realm_level: int, spirit_root: str 
     if realm_level < technique.realm_required:
         return False
     
-    # 检查灵根属性（简单实现）
+    # 检查灵根属性
     if technique.element != ElementType.NONE and spirit_root:
-        element_map = {
-            "金": ElementType.METAL,
-            "木": ElementType.WOOD,
-            "水": ElementType.WATER,
-            "火": ElementType.FIRE,
-            "土": ElementType.EARTH,
-            "风": ElementType.WIND,
-            "雷": ElementType.THUNDER,
-            "冰": ElementType.ICE
-        }
-        required_element = element_map.get(spirit_root[0])
-        if required_element and required_element != technique.element:
-            # 允许不同属性修炼，但效果打折
-            pass
+        # 简化的灵根匹配逻辑
+        # 天灵根可以学习所有属性功法
+        if spirit_root == "tian":
+            return True
+        
+        # 其他灵根类型都可以学习任意属性功法
+        # 实际效果会通过修炼速度和成功率体现
     
     return True
 
@@ -405,6 +433,73 @@ def get_all_techniques() -> Dict[str, Technique]:
     return TECHNIQUES_DB.copy()
 
 
+# 功法组合效果配置
+TECHNIQUE_COMBOS = {
+    "木系精通": {
+        "required_techniques": ["长春功", "青元剑诀", "狐仙决"],
+        "effects": ["木属性功法威力提升20%", "修炼速度提升15%"],
+        "bonus": {
+            "cultivation_speed_bonus": 0.15,
+            "combat_power_bonus": 0.2
+        }
+    },
+    "战斗大师": {
+        "required_techniques": ["眨眼剑法", "青元剑诀", "火球术"],
+        "effects": ["战斗技能冷却时间减少30%", "战斗中法力消耗减少20%"],
+        "bonus": {
+            "cooldown_reduction": 0.3,
+            "mana_cost_reduction": 0.2
+        }
+    }
+}
+
+
+def get_technique_combos(learned_techniques: list) -> Dict:
+    """
+    获取玩家已学功法的组合效果
+    
+    Args:
+        learned_techniques: 已学功法列表
+        
+    Returns:
+        组合效果字典
+    """
+    active_combos = {}
+    
+    for combo_name, combo_data in TECHNIQUE_COMBOS.items():
+        required_techniques = combo_data["required_techniques"]
+        if all(tech in learned_techniques for tech in required_techniques):
+            active_combos[combo_name] = combo_data
+    
+    return active_combos
+
+
+def calculate_combo_bonuses(active_combos: Dict) -> Dict:
+    """
+    计算组合效果的总加成
+    
+    Args:
+        active_combos: 激活的组合效果
+        
+    Returns:
+        总加成字典
+    """
+    total_bonuses = {
+        "cultivation_speed_bonus": 0.0,
+        "combat_power_bonus": 0.0,
+        "cooldown_reduction": 0.0,
+        "mana_cost_reduction": 0.0
+    }
+    
+    for combo_data in active_combos.values():
+        bonus = combo_data.get("bonus", {})
+        for key, value in bonus.items():
+            if key in total_bonuses:
+                total_bonuses[key] += value
+    
+    return total_bonuses
+
+
 # 功法学习记录（玩家数据，应该在数据库中）
 class TechniqueLearningRecord:
     """功法学习记录"""
@@ -412,6 +507,7 @@ class TechniqueLearningRecord:
     def __init__(self):
         self.learned_techniques: Dict[str, Dict] = {}  # 已学习的功法
         self.learning_progress: Dict[str, float] = {}  # 学习进度
+        self.last_practiced: Dict[str, str] = {}  # 最后练习时间
     
     def learn_technique(self, technique_name: str, technique_data: Dict = None) -> bool:
         """学习功法
@@ -450,7 +546,10 @@ class TechniqueLearningRecord:
             "name": technique_name,
             "level": 1,
             "mastery": 0.0,
-            "learned_at": ""
+            "learned_at": "",
+            "technique_type": technique.technique_type.value,
+            "element": technique.element.value,
+            "realm_required": technique.realm_required
         }
         self.learning_progress[technique_name] = 0.0
         return True
@@ -460,17 +559,19 @@ class TechniqueLearningRecord:
         if technique_name not in self.learned_techniques:
             return False
         
-        self.learning_progress[technique_name] = min(
-            1.0, 
-            self.learning_progress.get(technique_name, 0.0) + amount
-        )
+        # 计算熟练度提升
+        current_progress = self.learning_progress.get(technique_name, 0.0)
+        new_progress = min(1.0, current_progress + amount)
+        self.learning_progress[technique_name] = new_progress
         
         # 检查是否升级
-        if self.learning_progress[technique_name] >= 1.0:
-            self.learned_techniques[technique_name]["level"] += 1
+        if new_progress >= 1.0:
+            current_level = self.learned_techniques[technique_name]["level"]
+            self.learned_techniques[technique_name]["level"] = current_level + 1
             self.learning_progress[technique_name] = 0.0
+            return True  # 表示升级了
         
-        return True
+        return False  # 表示没有升级
     
     def get_technique_level(self, technique_name: str) -> int:
         """获取功法等级"""
@@ -481,6 +582,43 @@ class TechniqueLearningRecord:
     def get_mastery(self, technique_name: str) -> float:
         """获取功法熟练度"""
         return self.learning_progress.get(technique_name, 0.0)
+    
+    def get_technique_info(self, technique_name: str) -> Dict:
+        """获取功法详细信息"""
+        if technique_name not in self.learned_techniques:
+            return None
+        
+        info = self.learned_techniques[technique_name].copy()
+        info["mastery"] = self.get_mastery(technique_name)
+        return info
+    
+    def get_all_techniques_info(self) -> Dict[str, Dict]:
+        """获取所有已学功法的详细信息"""
+        all_info = {}
+        for technique_name in self.learned_techniques:
+            all_info[technique_name] = self.get_technique_info(technique_name)
+        return all_info
+    
+    def get_technique_evaluation(self, technique_name: str) -> str:
+        """获取功法评价"""
+        if technique_name not in self.learned_techniques:
+            return "未学习"
+        
+        level = self.get_technique_level(technique_name)
+        mastery = self.get_mastery(technique_name)
+        
+        if level >= 10:
+            return "登峰造极"
+        elif level >= 7:
+            return "炉火纯青"
+        elif level >= 5:
+            return "融会贯通"
+        elif level >= 3:
+            return "驾轻就熟"
+        elif level >= 2:
+            return "初窥门径"
+        else:
+            return "初学乍练"
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ from .techniques import (
     Technique, TechniqueType, ElementType, TECHNIQUES_DB,
     get_technique, get_techniques_by_realm, get_techniques_by_element,
     get_techniques_by_type, can_learn_technique, calculate_learning_success_rate,
-    get_all_techniques, TechniqueLearningRecord
+    get_all_techniques, TechniqueLearningRecord, get_technique_combos, calculate_combo_bonuses
 )
 from .items import (
     Item, ItemType, ItemRarity, ITEMS_DB,
@@ -94,6 +94,8 @@ __all__ = [
     'calculate_learning_success_rate',
     'get_all_techniques',
     'TechniqueLearningRecord',
+    'get_technique_combos',
+    'calculate_combo_bonuses',
     # 道具系统
     'Item',
     'ItemType',

@@ -132,6 +132,7 @@ GAME_CONFIG = {
             {"name": "新手村", "description": "凡人居住的村落，灵气稀薄，适合初入修仙之路。", "realm_required": 0, "danger_level": "安全", "location_type": "城镇", "parent_location": "镜州"},
             {"name": "彩霞山", "description": "七玄门所在之地，山上有彩霞笼罩，风景秀丽。", "realm_required": 0, "danger_level": "普通", "location_type": "门派", "parent_location": "镜州"},
             {"name": "神手谷", "description": "彩霞山后山山谷，墨大夫隐居之地。", "realm_required": 0, "danger_level": "危险", "location_type": "野外", "parent_location": "彩霞山"},
+            {"name": "青丘山", "description": "青丘山，传说中狐仙居住之地，山清水秀，灵气充沛。", "realm_required": 2, "danger_level": "普通", "location_type": "野外", "parent_location": "镜州"},
 
             # 越国 - 区域
             {"name": "越国", "description": "越国七大派所在之地，修仙资源丰富。", "realm_required": 1, "danger_level": "普通", "location_type": "区域", "parent_location": ""},

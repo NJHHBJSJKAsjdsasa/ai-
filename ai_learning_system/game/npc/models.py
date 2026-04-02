@@ -58,6 +58,11 @@ class NPCData:
     dodge_rate: float = 0.03  # 闪避率
     combat_wins: int = 0  # 胜利次数
     combat_losses: int = 0  # 失败次数
+    
+    # 新增属性
+    race: str = "人类"  # 种族
+    special_trait: str = ""  # 特殊特质
+    unique_ability: str = ""  # 独特能力
 
     def __post_init__(self):
         if not self.memories:

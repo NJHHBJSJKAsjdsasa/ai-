@@ -2,7 +2,7 @@
 道具系统配置 - 包含《凡人修仙传》等小说中的法宝、丹药、材料
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -429,6 +429,20 @@ ITEMS_DB: Dict[str, Item] = {
         origin="顶级妖兽掉落"
     ),
     
+    "狐仙内丹": Item(
+        name="狐仙内丹",
+        description="青丘山狐仙修炼而成的内丹，蕴含强大的木属性灵气。服用后可大幅提升修为，并有几率获得魅惑能力。",
+        item_type=ItemType.MATERIAL,
+        rarity=ItemRarity.EPIC,
+        effects=["大幅提升修为", "获得魅惑能力", "木属性亲和"],
+        value=80000,
+        stackable=True,
+        max_stack=5,
+        usable=True,
+        level_required=3,
+        origin="青丘山狐仙掉落"
+    ),
+    
     # ===== 灵石 =====
     "下品灵石": Item(
         name="下品灵石",
@@ -775,6 +789,190 @@ class Inventory:
     def is_full(self) -> bool:
         """检查背包是否已满"""
         return len(self.items) >= self.max_slots
+    
+    def get_items_by_type(self, item_type: str) -> Dict[str, Dict]:
+        """
+        按类型获取背包中的道具
+        
+        Args:
+            item_type: 道具类型
+            
+        Returns:
+            道具字典
+        """
+        result = {}
+        for item_name, data in self.items.items():
+            if data["data"].get("type") == item_type:
+                result[item_name] = data
+        return result
+    
+    def sort_items(self, sort_by: str = "value", reverse: bool = True) -> List[Tuple[str, Dict]]:
+        """
+        排序背包中的道具
+        
+        Args:
+            sort_by: 排序依据 (value, name, count, rarity)
+            reverse: 是否降序
+            
+        Returns:
+            排序后的道具列表
+        """
+        items_list = []
+        for item_name, data in self.items.items():
+            item_data = data["data"]
+            if sort_by == "value":
+                key = item_data.get("value", 0)
+            elif sort_by == "name":
+                key = item_name
+            elif sort_by == "count":
+                key = data["count"]
+            elif sort_by == "rarity":
+                rarity_order = {"普通": 1, "优秀": 2, "稀有": 3, "史诗": 4, "传说": 5, "神话": 6}
+                key = rarity_order.get(item_data.get("rarity", "普通"), 1)
+            else:
+                key = 0
+            items_list.append((item_name, data, key))
+        
+        items_list.sort(key=lambda x: x[2], reverse=reverse)
+        return [(item[0], item[1]) for item in items_list]
+    
+    def organize(self):
+        """
+        整理背包
+        按类型和稀有度排序，优化空间使用
+        """
+        # 先按类型分组
+        items_by_type = {}
+        for item_name, data in self.items.items():
+            item_type = data["data"].get("type", "其他")
+            if item_type not in items_by_type:
+                items_by_type[item_type] = []
+            items_by_type[item_type].append((item_name, data))
+        
+        # 按稀有度和价值排序每个类型的道具
+        sorted_items = {}
+        for item_type, items in items_by_type.items():
+            # 按稀有度和价值排序
+            items.sort(key=lambda x: (
+                {"普通": 1, "优秀": 2, "稀有": 3, "史诗": 4, "传说": 5, "神话": 6}.get(x[1]["data"].get("rarity", "普通"), 1),
+                x[1]["data"].get("value", 0)
+            ), reverse=True)
+            for item_name, data in items:
+                sorted_items[item_name] = data
+        
+        # 更新背包
+        self.items = sorted_items
+    
+    def search(self, keyword: str) -> Dict[str, Dict]:
+        """
+        在背包中搜索道具
+        
+        Args:
+            keyword: 搜索关键词
+            
+        Returns:
+            匹配的道具字典
+        """
+        result = {}
+        keyword_lower = keyword.lower()
+        for item_name, data in self.items.items():
+            if (keyword_lower in item_name.lower() or 
+                keyword_lower in data["data"].get("description", "").lower() or
+                any(keyword_lower in effect.lower() for effect in data["data"].get("effects", []))):
+                result[item_name] = data
+        return result
+    
+    def batch_use_item(self, item_name: str, count: int = 1) -> Tuple[bool, str]:
+        """
+        批量使用道具
+        
+        Args:
+            item_name: 道具名称
+            count: 使用数量
+            
+        Returns:
+            (是否成功, 消息)
+        """
+        if item_name not in self.items:
+            return False, f"背包中没有{item_name}"
+        
+        current_count = self.items[item_name]["count"]
+        if current_count < count:
+            return False, f"{item_name}数量不足（需要{count}个，只有{current_count}个）"
+        
+        # 检查是否可使用
+        item = get_item(item_name)
+        if not item and item_name in self.generated_items:
+            item_data = self.generated_items[item_name]
+            if not item_data.get("usable", True):
+                return False, f"{item_name}无法使用"
+        elif not item or not item.usable:
+            return False, f"{item_name}无法使用"
+        
+        # 批量使用
+        self.remove_item(item_name, count)
+        return True, f"批量使用了{item_name} x{count}"
+    
+    def can_use_item(self, item_name: str, player_level: int) -> Tuple[bool, str]:
+        """
+        检查玩家是否可以使用道具
+        
+        Args:
+            item_name: 道具名称
+            player_level: 玩家等级
+            
+        Returns:
+            (是否可以使用, 消息)
+        """
+        if item_name not in self.items:
+            return False, f"背包中没有{item_name}"
+        
+        # 检查等级要求
+        item = get_item(item_name)
+        if item:
+            if player_level < item.level_required:
+                return False, f"等级不足，需要{item.level_required}级"
+        else:
+            # 检查生成道具
+            if item_name in self.generated_items:
+                item_data = self.generated_items[item_name]
+                if player_level < item_data.get("level_required", 0):
+                    return False, f"等级不足，需要{item_data.get('level_required', 0)}级"
+        
+        # 检查是否可使用
+        if item:
+            if not item.usable:
+                return False, f"{item_name}无法使用"
+        else:
+            if item_name in self.generated_items:
+                if not self.generated_items[item_name].get("usable", True):
+                    return False, f"{item_name}无法使用"
+        
+        return True, "可以使用"
+    
+    def get_inventory_summary(self) -> Dict:
+        """
+        获取背包摘要
+        
+        Returns:
+            背包摘要信息
+        """
+        summary = {
+            "total_items": len(self.items),
+            "max_slots": self.max_slots,
+            "total_value": self.get_total_value(),
+            "items_by_type": {},
+            "empty_slots": self.max_slots - len(self.items)
+        }
+        
+        # 按类型统计
+        for item_name, data in self.items.items():
+            item_type = data["data"].get("type", "其他")
+            if item_type not in summary["items_by_type"]:
+                summary["items_by_type"][item_type] = 0
+            summary["items_by_type"][item_type] += 1
+        
+        return summary
 
 
 if __name__ == "__main__":
