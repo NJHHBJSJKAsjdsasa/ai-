@@ -1068,3 +1068,26 @@ class Player:
     
     def __str__(self) -> str:
         return f"{self.stats.name} ({self.get_realm_name()})"
+    
+    def save_to_db(self, db):
+        """
+        保存玩家数据到数据库
+        
+        Args:
+            db: 数据库实例
+        """
+        player_data = self.to_dict()
+        return db.save_player(self.stats.name, player_data)
+    
+    def load_from_db(self, db):
+        """
+        从数据库加载玩家数据
+        
+        Args:
+            db: 数据库实例
+        """
+        player_data = db.load_player(self.stats.name)
+        if player_data:
+            self.from_dict(player_data)
+            return True
+        return False
