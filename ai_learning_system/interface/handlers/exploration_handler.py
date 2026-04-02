@@ -58,6 +58,15 @@ class ExplorationHandler(BaseHandler):
                         print(f"  ✓ {item.name} 已添加到背包")
                     else:
                         print(f"  ✗ {item.name} 添加失败")
+                
+                # 保存游戏以持久化新获得的物品
+                try:
+                    from storage.database import Database
+                    db = Database()
+                    self.player.save_to_db(db)
+                    db.close()
+                except Exception as e:
+                    print(f"  ⚠️ 保存游戏失败: {e}")
 
             # 如果发现了NPC，添加到NPC管理器和数据库
             if result.discovered_npcs:
