@@ -973,6 +973,25 @@ class Inventory:
             summary["items_by_type"][item_type] += 1
         
         return summary
+    
+    def from_dict(self, data: Dict):
+        """
+        从字典加载背包数据
+        
+        Args:
+            data: 背包数据字典
+        """
+        if not isinstance(data, dict):
+            return
+        
+        # 加载物品
+        self.items = data.get("items", {})
+        
+        # 加载生成的道具定义
+        self.generated_items = data.get("generated_items", {})
+        
+        # 加载背包容量
+        self.max_slots = data.get("max_slots", 50)
 
 
 if __name__ == "__main__":

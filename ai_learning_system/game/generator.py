@@ -16,7 +16,7 @@ sys.path.insert(0, str(project_root))
 
 from utils.llm_client import DescriptionGenerator
 from config import get_realm_info, REALMS
-from config.items import get_items_by_type, ItemType as ConfigItemType, get_item
+from config.items import get_items_by_type, ItemType, get_item
 
 
 class MapType(Enum):
@@ -61,21 +61,12 @@ class NPCPersonality(Enum):
     TIMID = "胆小"
 
 
-class ItemType(Enum):
-    """物品类型枚举"""
-    MAGIC_TREASURE = "法宝"
-    PILL = "丹药"
-    SPIRIT_GRASS = "灵草"
-    TECHNIQUE = "功法"
-    MATERIAL = "材料"
-    TALISMAN = "符箓"
-
-
 class ItemRarity(Enum):
     """物品稀有度枚举"""
     COMMON = "普通"
-    UNCOMMON = "稀有"
-    RARE = "史诗"
+    UNCOMMON = "优秀"
+    RARE = "稀有"
+    EPIC = "史诗"
     LEGENDARY = "传说"
     MYTHIC = "神话"
 
@@ -338,7 +329,7 @@ class GeneratedItem:
     item_type: ItemType = ItemType.MATERIAL
     rarity: ItemRarity = ItemRarity.COMMON
     attributes: Dict[str, Any] = field(default_factory=dict)
-    effects: Dict[str, Any] = field(default_factory=dict)
+    effects: List[str] = field(default_factory=list)
     description: str = ""
     origin: str = ""
     legend: str = ""
@@ -518,7 +509,7 @@ class InfiniteGenerator:
         生成物品稀有度
         
         Args:
-            target_rarity: 目标稀有度等级（0-4），如果为None则基于概率生成
+            target_rarity: 目标稀有度等级（0-5），如果为None则基于概率生成
             
         Returns:
             物品稀有度枚举
@@ -526,8 +517,8 @@ class InfiniteGenerator:
         if target_rarity is not None:
             return list(ItemRarity)[target_rarity]
         
-        # 概率分布：普通70%，稀有20%，史诗8%，传说1.8%，神话0.2%
-        weights = [70, 20, 8, 1.8, 0.2]
+        # 概率分布：普通60%，优秀20%，稀有12%，史诗5%，传说2.5%，神话0.5%
+        weights = [60, 20, 12, 5, 2.5, 0.5]
         rarities = list(ItemRarity)
         return random.choices(rarities, weights=weights)[0]
 
@@ -752,13 +743,18 @@ class InfiniteGenerator:
         
         # 生成物品名称
         item_names = {
-            ItemType.MAGIC_TREASURE: ["飞剑", "宝镜", "灵珠", "玉佩", "金铃", "法杖", "仙衣", "战甲"],
+            ItemType.TREASURE: ["飞剑", "宝镜", "灵珠", "玉佩", "金铃", "法杖", "仙衣", "战甲"],
             ItemType.PILL: ["聚气丹", "筑基丹", "金丹", "元婴丹", "化神丹", "回春丹", "解毒丹", "增元丹"],
-            ItemType.SPIRIT_GRASS: ["灵芝", "人参", "何首乌", "黄精", "茯苓", "丹参", "当归", "川芎"],
-            ItemType.TECHNIQUE: ["心法", "剑诀", "刀法", "拳谱", "身法", "阵图", "丹方", "符咒"],
             ItemType.MATERIAL: ["玄铁", "精金", "灵木", "灵石", "妖核", "兽皮", "灵骨", "仙玉"],
-            ItemType.TALISMAN: ["火符", "水符", "雷符", "风符", "土符", "金符", "木符", "遁符"],
+            ItemType.BOOK: ["心法", "剑诀", "刀法", "拳谱", "身法", "阵图", "丹方", "符咒"],
+            ItemType.SPIRIT_STONE: ["下品灵石", "中品灵石", "上品灵石", "极品灵石"],
+            ItemType.CONSUMABLE: ["火符", "水符", "雷符", "风符", "土符", "金符", "木符", "遁符"],
         }
+        
+        # 确保item_type在item_names中
+        if item_type not in item_names:
+            # 默认使用MATERIAL类型
+            item_type = ItemType.MATERIAL
         
         base_name = random.choice(item_names[item_type])
         
@@ -767,7 +763,8 @@ class InfiniteGenerator:
             ItemRarity.COMMON: ["普通的", "一般的", "寻常的"],
             ItemRarity.UNCOMMON: ["精良的", "优质的", "上等的"],
             ItemRarity.RARE: ["稀有的", "珍贵的", "罕见的"],
-            ItemRarity.LEGENDARY: ["传说的", "史诗的", "神话的"],
+            ItemRarity.EPIC: ["史诗的", "传奇的", "绝世的"],
+            ItemRarity.LEGENDARY: ["传说的", "神话的", "太古的"],
             ItemRarity.MYTHIC: ["神话的", "至尊的", "无上的"],
         }
         
@@ -779,8 +776,9 @@ class InfiniteGenerator:
             ItemRarity.COMMON: 1.0,
             ItemRarity.UNCOMMON: 1.5,
             ItemRarity.RARE: 2.5,
-            ItemRarity.LEGENDARY: 4.0,
-            ItemRarity.MYTHIC: 6.0,
+            ItemRarity.EPIC: 3.5,
+            ItemRarity.LEGENDARY: 5.0,
+            ItemRarity.MYTHIC: 7.0,
         }
         multiplier = rarity_multipliers[rarity]
         
@@ -789,13 +787,23 @@ class InfiniteGenerator:
             "durability": int(random.randint(50, 100) * multiplier),
         }
         
-        effects = {}
+        effects = []
         if item_type == ItemType.PILL:
-            effects["health_restore"] = int(20 * multiplier)
-            effects["spirit_restore"] = int(15 * multiplier)
-        elif item_type == ItemType.MAGIC_TREASURE:
-            effects["attack_bonus"] = int(5 * multiplier)
-            effects["defense_bonus"] = int(3 * multiplier)
+            effects.append("恢复生命值")
+            effects.append("恢复法力")
+        elif item_type == ItemType.TREASURE:
+            effects.append("攻击加成")
+            effects.append("防御加成")
+        elif item_type == ItemType.SPIRIT_STONE:
+            effects.append("恢复法力")
+            effects.append("货币")
+        elif item_type == ItemType.CONSUMABLE:
+            effects.append("特殊效果")
+        elif item_type == ItemType.BOOK:
+            effects.append("学习功法")
+        elif item_type == ItemType.MATERIAL:
+            effects.append("炼器材料")
+            effects.append("炼丹材料")
         
         # 创建物品对象
         item = GeneratedItem(
