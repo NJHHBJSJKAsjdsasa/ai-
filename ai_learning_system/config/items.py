@@ -429,6 +429,20 @@ ITEMS_DB: Dict[str, Item] = {
         origin="顶级妖兽掉落"
     ),
     
+    "狐仙内丹": Item(
+        name="狐仙内丹",
+        description="青丘山狐仙修炼而成的内丹，蕴含强大的木属性灵气。服用后可大幅提升修为，并有几率获得魅惑能力。",
+        item_type=ItemType.MATERIAL,
+        rarity=ItemRarity.EPIC,
+        effects=["大幅提升修为", "获得魅惑能力", "木属性亲和"],
+        value=80000,
+        stackable=True,
+        max_stack=5,
+        usable=True,
+        level_required=3,
+        origin="青丘山狐仙掉落"
+    ),
+    
     # ===== 灵石 =====
     "下品灵石": Item(
         name="下品灵石",

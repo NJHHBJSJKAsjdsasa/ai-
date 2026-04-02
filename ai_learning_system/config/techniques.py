@@ -271,6 +271,23 @@ TECHNIQUES_DB: Dict[str, Technique] = {
         mana_cost=12,
         damage_type=DamageType.PHYSICAL
     ),
+    
+    "狐仙决": Technique(
+        name="狐仙决",
+        description="青丘山狐仙传承功法，修炼后可化形变化，魅惑敌人。",
+        technique_type=TechniqueType.CULTIVATION,
+        element=ElementType.WOOD,
+        realm_required=2,  # 筑基期
+        effects=["化形变化", "魅惑敌人", "速度提升"],
+        learning_difficulty=65,
+        cultivation_speed_bonus=0.15,
+        combat_power_bonus=0.25,
+        special_abilities=["狐火", "魅惑术", "化形"],
+        origin="青丘山狐仙传承",
+        is_combat_skill=True,
+        mana_cost=15,
+        damage_type=DamageType.MAGIC
+    ),
 }
 
 
