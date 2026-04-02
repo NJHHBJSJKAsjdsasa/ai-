@@ -27,6 +27,7 @@ from .panels.pet_panel import PetPanel
 from .panels.achievement_panel import AchievementPanel
 from .panels.world_panel import WorldPanel
 from .panels.story_panel import StoryPanel
+from .panels.shop_panel import ShopPanel
 
 
 class MainWindow:
@@ -189,6 +190,7 @@ class MainWindow:
             ("npc", "👥", "NPC", self._on_npc_click),
             ("social", "💕", "社交", self._on_social_click),
             ("inventory", "🎒", "背包", self._on_inventory_click),
+            ("shop", "🏪", "商店", self._on_shop_click),
             ("technique", "📜", "功法", self._on_technique_click),
             ("sect", "🏛️", "门派", self._on_sect_click),
             ("combat", "⚔️", "战斗", self._on_combat_click),
@@ -239,6 +241,7 @@ class MainWindow:
             "npc": NPCPanel(self.content_frame, self),
             "social": SocialPanel(self.content_frame, self),
             "inventory": InventoryPanel(self.content_frame, self),
+            "shop": ShopPanel(self.content_frame, self),
             "technique": TechniquePanel(self.content_frame, self),
             "sect": SectPanel(self.content_frame, self),
             "combat": CombatPanel(self.content_frame, self),
@@ -306,6 +309,7 @@ class MainWindow:
                 "npc": "👥 NPC",
                 "social": "💕 社交",
                 "inventory": "🎒 背包",
+                "shop": "🏪 商店",
                 "technique": "📜 功法",
                 "sect": "🏛️ 门派",
                 "combat": "⚔️ 战斗",
@@ -429,6 +433,9 @@ class MainWindow:
 
     def _on_inventory_click(self):
         self.show_panel("inventory")
+
+    def _on_shop_click(self):
+        self.show_panel("shop")
 
     def _on_technique_click(self):
         self.show_panel("technique")
