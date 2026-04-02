@@ -1,0 +1,1428 @@
+"""
+NPC系统模块
+管理NPC生成、记忆、交互等
+g集成NPC独立系统
+"""
+
+import random
+import time
+from typing import Dict, List, Optional, Any
+from dataclasses import dataclass, field
+
+import sys
+from pathlib import Path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
+from config import (
+    get_realm_info, get_realm_title, PERSONALITIES, SECTS, SECT_DETAILS,
+    DAO_NAME_PREFIX, DAO_NAME_SUFFIX, GAME_CONFIG
+)
+
+# 导入NPC独立系统
+from game.npc_independent import NPCIndependent, NPCIndependentManager
+
+# 导入新系统模块
+from game.npc_goal_system import Goal, NPCGoalSystem, npc_goal_system
+from game.npc_schedule_system import Activity, NPCScheduleSystem, schedule_system as npc_schedule_system
+from game.npc_relationship_network import Relationship, NPCRelationshipNetwork, relationship_network
+from game.npc_proactive_behavior import ProactiveBehavior, proactive_behavior
+from game.world_event_system import WorldEvent, world_event_manager, npc_event_handler
+from game.npc_life_record import LifeEvent, NPCLifeRecord, NPCStoryGenerator, get_life_record
+from game.npc_personality_expression import SpeakingStyle, ValuesSystem, PersonalityExpression, personality_expression
+from game.enhanced_memory_system import EnhancedMemory, EnhancedMemorySystem
+
+
+@dataclass
+class NPCMemory:
+    """NPC记忆数据类"""
+    content: str
+    importance: int = 5  # 重要性（0-10）
+    timestamp: int = 0  # 游戏时间戳
+    emotion: str = "neutral"  # 情感（positive/negative/neutral）
+
+
+@dataclass
+class NPCData:
+    """NPC数据类"""
+    id: str
+    name: str
+    dao_name: str
+    age: int
+    lifespan: int
+    realm_level: int
+    sect: str
+    personality: str
+    occupation: str
+    location: str
+
+    # 门派相关信息
+    sect_type: str = ""  # 门派类型（正道/邪道/中立）
+    sect_specialty: str = ""  # 门派专长
+
+    # 关系
+    favor: Dict[str, int] = field(default_factory=dict)  # 对玩家的好感度
+
+    # 记忆
+    memories: List[NPCMemory] = field(default_factory=list)
+
+    # 状态
+    is_alive: bool = True
+
+    # 死亡相关
+    death_info: Dict = field(default_factory=dict)  # 死亡信息字典
+    can_resurrect: bool = True  # 是否可复活
+
+    # 善恶值 (-100到100，负数邪恶，正数善良)
+    morality: int = 0
+
+    # 战斗属性
+    attack: int = 10  # 基础攻击力
+    defense: int = 5  # 基础防御力
+    speed: int = 8  # 基础速度
+    crit_rate: float = 0.03  # 暴击率
+    dodge_rate: float = 0.03  # 闪避率
+    combat_wins: int = 0  # 胜利次数
+    combat_losses: int = 0  # 失败次数
+
+    def __post_init__(self):
+        if not self.memories:
+            self.memories = []
+
+
+class NPC:
+    """NPC类 - 集成独立系统和新系统"""
+    
+    def __init__(self, npc_data: Optional[NPCData] = None):
+        """
+        初始化NPC
+        
+        Args:
+            npc_data: NPC数据
+        """
+        if npc_data:
+            self.data = npc_data
+        else:
+            self.data = self._generate_random_npc()
+        
+        # 初始化NPC独立系统
+        npc_data_dict = {
+            "occupation": self.data.occupation,
+            "location": self.data.location,
+            "personality": self.data.personality,
+        }
+        self.independent = NPCIndependent(self.data.id, npc_data_dict)
+        
+        # 战斗AI配置
+        self.combat_ai_config: Dict[str, Any] = {
+            "aggressive": 0.5,  # 侵略性 (0-1)
+            "defensive": 0.5,  # 防御性 (0-1)
+            "tactical": 0.5,  # 战术性 (0-1)
+            "retreat_threshold": 0.2,  # 撤退生命值阈值
+            "skill_usage_rate": 0.7,  # 技能使用频率
+        }
+        
+        # 战斗记录
+        self.combat_record: List[Dict[str, Any]] = []
+        
+        # ========== 新系统属性 ==========
+        # 目标系统
+        self.goals: List[Goal] = []
+        
+        # 日程系统
+        self.schedule: Dict[int, Activity] = {}
+        
+        # 价值观系统
+        self.values: ValuesSystem = None
+        
+        # 说话风格
+        self.speaking_style: SpeakingStyle = None
+        
+        # 成长记录系统
+        self.life_record: NPCLifeRecord = None
+        
+        # 增强记忆系统
+        self.enhanced_memory: EnhancedMemorySystem = None
+        
+        # 主动行为冷却
+        self.proactive_cooldowns: Dict[str, float] = {}
+        
+        # 初始化新系统
+        self._init_new_systems()
+    
+    def _init_new_systems(self):
+        """初始化所有新系统"""
+        # 1. 生成初始目标
+        self._generate_initial_goals()
+        
+        # 2. 生成每日日程
+        self._generate_daily_schedule()
+        
+        # 3. 生成价值观和说话风格
+        self._generate_personality_expression()
+        
+        # 4. 初始化成长记录
+        self.life_record = get_life_record()
+        self._record_birth_event()
+        
+        # 5. 初始化增强记忆系统
+        self.enhanced_memory = EnhancedMemorySystem(self.data.id)
+        
+        # 6. 注册世界事件监听
+        self._register_event_handlers()
+    
+    def _generate_initial_goals(self):
+        """生成初始目标"""
+        # 使用目标系统生成目标
+        generated_goals = npc_goal_system.generate_goals(self, count=random.randint(1, 3))
+        self.goals.extend(generated_goals)
+    
+    def _get_goal_target(self, goal_type: str) -> str:
+        """根据目标类型获取目标对象"""
+        targets = {
+            "cultivation": f"突破到{get_realm_info(min(self.data.realm_level + 1, 7)).name if get_realm_info(min(self.data.realm_level + 1, 7)) else '更高境界'}",
+            "exploration": random.choice(["神秘洞穴", "古老遗迹", "禁地", "秘境"]),
+            "social": "结交志同道合的道友",
+            "combat": "提升战斗技巧",
+            "crafting": f"成为优秀的{self.data.occupation}" if self.data.occupation else "精通技艺"
+        }
+        return targets.get(goal_type, "未知目标")
+    
+    def _generate_daily_schedule(self):
+        """生成每日日程"""
+        schedule = npc_schedule_system.generate_daily_schedule(self)
+        # 将活动列表转换为以小时为键的字典
+        self.schedule = {}
+        if schedule and hasattr(schedule, 'activities'):
+            for activity in schedule.activities:
+                if hasattr(activity, 'start_time'):
+                    self.schedule[activity.start_time] = activity
+    
+    def _generate_personality_expression(self):
+        """生成个性表达系统"""
+        # 生成价值观
+        self.values = ValuesSystem()
+        self.values.generate_random_values()
+        
+        # 根据道德值调整价值观
+        if self.data.morality > 30:
+            self.values.values.justice = max(self.values.values.justice, 70)
+        elif self.data.morality < -30:
+            self.values.values.justice = min(self.values.values.justice, 30)
+        
+        # 生成说话风格
+        self.speaking_style = personality_expression.get_style_for_personality(self.data.personality)
+    
+    def _record_birth_event(self):
+        """记录出生/初始事件"""
+        if self.life_record:
+            from game.npc_life_record import EventType, EmotionType
+            self.life_record.record_event(
+                npc_id=self.data.id,
+                event_type=EventType.ACHIEVEMENT,
+                description=f"{self.data.name}出生于{self.data.sect}，成为{self.data.occupation}",
+                importance=8,
+                emotion=EmotionType.POSITIVE,
+                location=self.data.sect,
+                outcome=f"成为{self.data.sect}的{self.data.occupation}",
+                details={
+                    "sect": self.data.sect,
+                    "occupation": self.data.occupation,
+                    "realm_level": self.data.realm_level,
+                    "realm_name": self.get_realm_name(),
+                    "age": self.data.age
+                }
+            )
+    
+    def _register_event_handlers(self):
+        """注册世界事件处理器"""
+        # 注册NPC事件监听器
+        from game.world_event_system import WorldEventType
+        world_event_manager.register_npc_listener(
+            self.data.id, 
+            [WorldEventType.PLAYER_BREAKTHROUGH, WorldEventType.SECRET_REALM_OPEN]
+        )
+    
+    def update(self, current_time: float = None, player_nearby: bool = False) -> bool:
+        """
+        更新NPC状态（独立系统 + 新系统）
+        
+        Args:
+            current_time: 当前时间戳
+            player_nearby: 玩家是否在附近
+            
+        Returns:
+            是否执行了更新
+        """
+        if current_time is None:
+            current_time = time.time()
+        
+        # 更新独立系统
+        updated = self.independent.update(current_time, player_nearby)
+        
+        # ========== 新系统更新 ==========
+        # 1. 获取当前活动（日程系统）
+        current_hour = int((current_time // 3600) % 24)
+        current_activity = self.schedule.get(current_hour)
+        
+        # 2. 检查主动行为
+        if player_nearby:
+            self._check_proactive_behaviors(current_time)
+        
+        # 3. 更新目标进度
+        self._update_goal_progress(current_activity)
+        
+        # 4. 记录生活事件（根据活动）
+        if current_activity and random.random() < 0.1:  # 10%概率记录
+            self._record_activity_event(current_activity)
+        
+        return updated
+    
+    def _check_proactive_behaviors(self, current_time: float):
+        """检查主动行为"""
+        # 检查各种主动行为的冷却
+        behavior_types = ["dialogue", "combat", "trade", "exploration"]
+        
+        for behavior_type in behavior_types:
+            cooldown_key = f"proactive_{behavior_type}"
+            last_time = self.proactive_cooldowns.get(cooldown_key, 0)
+            
+            # 检查冷却时间（至少5分钟）
+            if current_time - last_time < 300:
+                continue
+            
+            # 检查冷却是否过期（可以触发新行为）
+            if not proactive_behavior.is_on_cooldown(self.data.id, behavior_type):
+                self.proactive_cooldowns[cooldown_key] = current_time
+                # 实际触发逻辑由调用方处理
+                break
+    
+    def _update_goal_progress(self, current_activity: Optional[Activity]):
+        """更新目标进度"""
+        for goal in self.goals:
+            if goal.is_completed or goal.is_failed:
+                continue
+            
+            # 根据当前活动更新目标进度
+            if current_activity:
+                progress_increment = self._calculate_goal_progress(goal, current_activity)
+                if progress_increment > 0:
+                    npc_goal_system.update_goal_progress(self.data.id, goal.goal_id, progress_increment)
+    
+    def _calculate_goal_progress(self, goal: Goal, activity: Activity) -> float:
+        """计算目标进度增量"""
+        # 根据目标类型和活动类型匹配度计算进度
+        goal_activity_map = {
+            "cultivation": ["cultivation", "meditation"],
+            "exploration": ["exploration", "travel"],
+            "social": ["social", "rest"],
+            "combat": ["combat", "training"],
+            "crafting": ["crafting", "work"]
+        }
+        
+        compatible_activities = goal_activity_map.get(goal.goal_type, [])
+        if activity.activity_type in compatible_activities:
+            return random.uniform(1.0, 3.0)
+        return 0.0
+    
+    def _record_activity_event(self, activity: Activity):
+        """记录活动事件"""
+        if not self.life_record:
+            return
+        
+        from game.npc_life_record import EventType, EmotionType
+        
+        event_descriptions = {
+            "cultivation": f"专心修炼，感悟{get_realm_info(self.data.realm_level).name if get_realm_info(self.data.realm_level) else '境界'}之道",
+            "work": f"从事{self.data.occupation}工作",
+            "rest": "休息恢复精力",
+            "social": "与其他修士交流",
+            "exploration": "探索周边区域",
+            "combat": "进行战斗训练"
+        }
+        
+        description = event_descriptions.get(
+            activity.activity_type.value if hasattr(activity.activity_type, 'value') else activity.activity_type, 
+            f"进行{activity.name if hasattr(activity, 'name') else '活动'}"
+        )
+        
+        self.life_record.record_event(
+            npc_id=self.data.id,
+            event_type=EventType.EXPLORATION if activity.activity_type.value == "exploration" else EventType.DECISION,
+            description=description,
+            importance=random.randint(2, 4),
+            emotion=EmotionType.NEUTRAL,
+            location=self.data.location
+        )
+    
+    def get_independent_status(self) -> Dict[str, Any]:
+        """获取独立系统状态"""
+        return self.independent.get_status()
+    
+    # ========== 新系统公共方法 ==========
+    def set_goal(self, goal_type: str, target: str, priority: int = 5) -> Optional[Goal]:
+        """
+        设置目标
+        
+        Args:
+            goal_type: 目标类型
+            target: 目标对象
+            priority: 优先级 (1-10)
+            
+        Returns:
+            创建的目标对象
+        """
+        goal = npc_goal_system.create_goal(
+            npc_id=self.data.id,
+            goal_type=goal_type,
+            target=target,
+            priority=priority
+        )
+        if goal:
+            self.goals.append(goal)
+            # 记录目标设定事件
+            if self.life_record:
+                self.life_record.add_event(
+                    event_type="goal_set",
+                    description=f"设定了新目标：{target}",
+                    importance=5,
+                    tags=["目标", goal_type]
+                )
+        return goal
+    
+    def get_daily_schedule(self) -> Dict[int, Activity]:
+        """
+        获取每日日程
+        
+        Returns:
+            日程字典 {小时: 活动}
+        """
+        return self.schedule
+    
+    def get_current_activity(self) -> Optional[Activity]:
+        """
+        获取当前活动
+        
+        Returns:
+            当前活动对象
+        """
+        import time
+        current_hour = time.localtime().tm_hour
+        return npc_schedule_system.get_current_activity(self, current_hour)
+    
+    def initiate_interaction(self, target: 'NPC') -> bool:
+        """
+        主动发起交互
+        
+        Args:
+            target: 目标NPC
+            
+        Returns:
+            是否成功发起
+        """
+        if not target:
+            return False
+        
+        # 使用主动行为系统
+        behavior_type = proactive_behavior.determine_behavior_type(self.data.id, target.data.id)
+        
+        if behavior_type == "socialize":
+            # 社交交互
+            self.socialize_with(target)
+            return True
+        elif behavior_type == "combat":
+            # 战斗交互
+            self._check_combat_trigger(target)
+            return True
+        elif behavior_type == "trade":
+            # 交易交互（记录事件）
+            if self.life_record:
+                self.life_record.add_event(
+                    event_type="trade",
+                    description=f"向{target.data.name}发起交易",
+                    importance=4,
+                    tags=["交易", "社交"]
+                )
+            return True
+        
+        return False
+    
+    def perceive_world_event(self, event: WorldEvent):
+        """
+        感知世界事件
+        
+        Args:
+            event: 世界事件
+        """
+        # 记录事件感知
+        if self.life_record:
+            self.life_record.add_event(
+                event_type="world_event",
+                description=f"感知到世界事件：{event.name}",
+                importance=event.importance,
+                tags=["世界事件"] + event.tags
+            )
+        
+        # 添加到增强记忆
+        if self.enhanced_memory:
+            self.enhanced_memory.add_memory(
+                content=f"经历了世界事件：{event.description}",
+                memory_type="world_event",
+                importance=event.importance,
+                emotional_tag=event.emotional_impact
+            )
+        
+        # 根据事件类型调整目标
+        self._adjust_goals_by_event(event)
+    
+    def _adjust_goals_by_event(self, event: WorldEvent):
+        """根据世界事件调整目标"""
+        # 根据事件影响调整目标优先级
+        for goal in self.goals:
+            if goal.is_completed or goal.is_abandoned:
+                continue
+            
+            # 根据事件类型和目标类型的关联调整
+            if event.event_type == "cultivation_opportunity" and goal.goal_type == "cultivation":
+                goal.priority = min(10, goal.priority + 1)
+            elif event.event_type == "conflict" and goal.goal_type == "combat":
+                goal.priority = min(10, goal.priority + 2)
+            elif event.event_type == "resource_discovery" and goal.goal_type == "exploration":
+                goal.priority = min(10, goal.priority + 1)
+    
+    def get_life_story(self) -> str:
+        """
+        获取人生故事
+        
+        Returns:
+            人生故事文本
+        """
+        if not self.life_record:
+            return f"{self.data.name}的故事尚未开始..."
+        
+        story_generator = NPCStoryGenerator(self.life_record)
+        return story_generator.generate_life_story()
+    
+    def get_personality_description(self) -> str:
+        """
+        获取个性描述
+        
+        Returns:
+            个性描述文本
+        """
+        descriptions = []
+        
+        # 基础性格
+        descriptions.append(f"性格：{self.data.personality}")
+        
+        # 价值观描述
+        if self.values:
+            descriptions.append(f"价值观：{self.values.get_dominant_value()}")
+        
+        # 说话风格
+        if self.speaking_style:
+            style_desc = f"说话风格：{self.speaking_style.formality_level}"
+            if self.speaking_style.use_classical:
+                style_desc += "，善用古文"
+            descriptions.append(style_desc)
+        
+        # 当前目标
+        active_goals = [g for g in self.goals if not g.is_completed and not g.is_abandoned]
+        if active_goals:
+            top_goal = max(active_goals, key=lambda g: g.priority)
+            descriptions.append(f"当前目标：{top_goal.target}")
+        
+        return "；".join(descriptions)
+    
+    def update_relationship(self, target_id: str, delta: float, reason: str = ""):
+        """
+        更新关系
+        
+        Args:
+            target_id: 目标NPC ID
+            delta: 关系变化值 (-100到100)
+            reason: 变化原因
+        """
+        # 更新关系网络
+        relationship_network.update_relationship(
+            npc1_id=self.data.id,
+            npc2_id=target_id,
+            delta=delta,
+            reason=reason
+        )
+        
+        # 记录关系变化事件
+        if self.life_record and abs(delta) >= 5:
+            event_type = "relationship_improve" if delta > 0 else "relationship_deteriorate"
+            self.life_record.add_event(
+                event_type=event_type,
+                description=f"与{target_id}的关系发生变化：{reason}" if reason else f"与{target_id}的关系发生变化",
+                importance=min(10, int(abs(delta) / 10) + 3),
+                tags=["关系变化"]
+            )
+    
+    def get_relationship_with(self, target_id: str) -> Optional[Relationship]:
+        """
+        获取与特定NPC的关系
+        
+        Args:
+            target_id: 目标NPC ID
+            
+        Returns:
+            关系对象
+        """
+        return relationship_network.get_relationship(self.data.id, target_id)
+    
+    def speak(self, content: str, context: str = "") -> str:
+        """
+        生成个性化对话
+        
+        Args:
+            content: 原始内容
+            context: 对话上下文
+            
+        Returns:
+            个性化表达的内容
+        """
+        if not self.speaking_style:
+            return content
+        
+        return self.speaking_style.express(content, context)
+    
+    def add_enhanced_memory(self, content: str, memory_type: str = "general", 
+                           importance: int = 5, emotional_tag: str = "neutral"):
+        """
+        添加增强记忆
+        
+        Args:
+            content: 记忆内容
+            memory_type: 记忆类型
+            importance: 重要性
+            emotional_tag: 情感标签
+        """
+        if self.enhanced_memory:
+            self.enhanced_memory.add_memory(
+                content=content,
+                memory_type=memory_type,
+                importance=importance,
+                emotional_tag=emotional_tag
+            )
+    
+    def get_combat_power(self) -> int:
+        """
+        计算战斗力
+        
+        Returns:
+            战斗力数值
+        """
+        # 基础战斗力 = 攻击 + 防御 * 2 + 速度
+        base_power = self.data.attack + self.data.defense * 2 + self.data.speed
+        
+        # 境界加成
+        realm_multiplier = 1 + self.data.realm_level * 0.2
+        
+        # 暴击和闪避加成
+        crit_bonus = self.data.crit_rate * 100
+        dodge_bonus = self.data.dodge_rate * 100
+        
+        # 计算总战斗力
+        combat_power = int((base_power + crit_bonus + dodge_bonus) * realm_multiplier)
+        
+        return combat_power
+    
+    def socialize_with(self, other_npc: 'NPC'):
+        """
+        与另一个NPC社交
+        
+        Args:
+            other_npc: 另一个NPC
+        """
+        # 更新关系
+        affinity_change = random.uniform(-2, 5)
+        self.independent.update_relationship(other_npc.data.id, affinity_change)
+        other_npc.independent.update_relationship(self.data.id, affinity_change)
+        
+        # 分享记忆
+        if self.independent.memories and random.random() < 0.3:
+            memory = random.choice(self.independent.memories)
+            other_npc.independent.add_memory(
+                f"听{self.data.dao_name}说: {memory.content}", 
+                importance=memory.importance//2
+            )
+        
+        if other_npc.independent.memories and random.random() < 0.3:
+            memory = random.choice(other_npc.independent.memories)
+            self.independent.add_memory(
+                f"听{other_npc.data.dao_name}说: {memory.content}", 
+                importance=memory.importance//2
+            )
+        
+        # 记录互动记忆
+        self.independent.add_memory(f"与{other_npc.data.dao_name}交流了一番", importance=3)
+        other_npc.independent.add_memory(f"与{self.data.dao_name}交流了一番", importance=3)
+        
+        # 检查战斗机会
+        self._check_combat_trigger(other_npc)
+    
+    def _check_combat_trigger(self, other_npc: 'NPC'):
+        """
+        检查是否触发战斗
+        
+        Args:
+            other_npc: 另一个NPC
+        """
+        from game.npc_combat import npc_combat_manager
+        
+        # 检查战斗机会
+        combat_type = self.independent._check_combat_opportunity(other_npc)
+        
+        if combat_type:
+            # 双方做出战斗决策
+            self_accept = self.independent._make_combat_decision(other_npc, combat_type)
+            other_accept = other_npc.independent._make_combat_decision(self, combat_type)
+            
+            if self_accept and other_accept:
+                # 执行战斗
+                if combat_type == "spar":
+                    result = npc_combat_manager.execute_npc_spar(self, other_npc)
+                    if result:
+                        # 记录战斗
+                        self._record_combat(other_npc, combat_type, result)
+                        other_npc._record_combat(self, combat_type, result)
+                elif combat_type == "deathmatch":
+                    result = npc_combat_manager.execute_npc_deathmatch(self, other_npc)
+                    if result:
+                        self._record_combat(other_npc, combat_type, result)
+                        other_npc._record_combat(self, combat_type, result)
+    
+    def _record_combat(self, opponent: 'NPC', combat_type: str, result):
+        """
+        记录战斗结果
+        
+        Args:
+            opponent: 对手NPC
+            combat_type: 战斗类型
+            result: 战斗结果
+        """
+        import time
+        
+        # 确定胜负
+        if result.winner_id == self.data.id:
+            outcome = "win"
+            self.data.combat_wins += 1
+        elif result.winner_id == opponent.data.id:
+            outcome = "loss"
+            self.data.combat_losses += 1
+        else:
+            outcome = "draw"
+        
+        # 添加到战斗记录
+        combat_entry = {
+            "opponent_id": opponent.data.id,
+            "opponent_name": opponent.data.dao_name,
+            "type": combat_type,
+            "outcome": outcome,
+            "timestamp": time.time(),
+            "turns": getattr(result, 'total_turns', 0),
+        }
+        self.combat_record.append(combat_entry)
+        
+        # 限制记录数量
+        if len(self.combat_record) > 20:
+            self.combat_record = self.combat_record[-20:]
+    
+    def _generate_random_npc(self) -> NPCData:
+        """生成随机NPC"""
+        # 生成道号
+        dao_name = random.choice(DAO_NAME_PREFIX) + random.choice(DAO_NAME_SUFFIX)
+
+        # 随机境界（根据概率分布）
+        realm_weights = [30, 25, 20, 15, 8, 2, 0, 0]  # 凡人到大乘的概率
+        realm_level = random.choices(range(8), weights=realm_weights)[0]
+
+        # 获取境界信息
+        realm_info = get_realm_info(realm_level)
+
+        # 随机年龄
+        if realm_level == 0:
+            age = random.randint(16, 60)
+            lifespan = 80
+        else:
+            min_age = 16 + realm_level * 10
+            max_age = realm_info.lifespan if realm_info else 100
+            age = random.randint(min_age, min(max_age - 10, max_age))
+            lifespan = realm_info.lifespan if realm_info else 100
+
+        # 随机门派（优先使用有详细信息的门派）
+        if SECT_DETAILS and random.random() < 0.7:  # 70%概率使用有详细信息的门派
+            sect = random.choice(list(SECT_DETAILS.keys()))
+            sect_info = SECT_DETAILS.get(sect, {})
+            sect_type = sect_info.get("type", "中立")
+            sect_specialty = sect_info.get("specialty", "")
+
+            # 根据门派类型调整职业
+            if sect_specialty == "炼丹术":
+                occupations = ["炼丹师", "药商", "门派弟子", "散修"]
+            elif sect_specialty == "驭兽术":
+                occupations = ["驭兽师", "猎人", "门派弟子", "散修"]
+            elif sect_specialty == "剑道" or sect_specialty == "巨剑术":
+                occupations = ["剑修", "门派弟子", "散修", "猎人"]
+            elif sect_specialty == "炼体术":
+                occupations = ["体修", "门派弟子", "散修", "铁匠"]
+            elif sect_specialty == "符箓之道":
+                occupations = ["符师", "门派弟子", "散修", "药商"]
+            else:
+                occupations = ["药商", "铁匠", "散修", "门派弟子", "炼丹师", "炼器师", "猎人", "渔夫"]
+        else:
+            sect = random.choice(SECTS)
+            sect_type = ""
+            sect_specialty = ""
+            occupations = ["药商", "铁匠", "散修", "门派弟子", "炼丹师", "炼器师", "猎人", "渔夫"]
+
+        occupation = random.choice(occupations)
+
+        # 随机性格
+        personality = random.choice(PERSONALITIES)
+
+        # 生成ID
+        npc_id = f"npc_{random.randint(10000, 99999)}"
+
+        # 随机生成善恶值 (-80到80之间)
+        morality = random.randint(-80, 80)
+
+        # 根据门派类型调整善恶值 (正道+20, 邪道-20)
+        if sect_type == "正道":
+            morality += 20
+        elif sect_type == "邪道":
+            morality -= 20
+
+        # 确保善恶值在-100到100范围内
+        morality = max(-100, min(100, morality))
+
+        # 根据境界生成战斗属性
+        base_attack = 10 + realm_level * 5
+        base_defense = 5 + realm_level * 3
+        base_speed = 8 + realm_level * 2
+        base_crit = min(0.03 + realm_level * 0.01, 0.3)
+        base_dodge = min(0.03 + realm_level * 0.01, 0.3)
+
+        # 根据职业调整战斗属性
+        if occupation in ["剑修", "体修"]:
+            base_attack = int(base_attack * 1.2)
+            base_crit = min(base_crit * 1.5, 0.5)
+        elif occupation in ["炼丹师", "炼器师"]:
+            base_defense = int(base_defense * 1.2)
+        elif occupation == "驭兽师":
+            base_speed = int(base_speed * 1.3)
+
+        # 添加随机波动
+        attack = int(base_attack * random.uniform(0.8, 1.2))
+        defense = int(base_defense * random.uniform(0.8, 1.2))
+        speed = int(base_speed * random.uniform(0.8, 1.2))
+        crit_rate = round(base_crit * random.uniform(0.8, 1.2), 3)
+        dodge_rate = round(base_dodge * random.uniform(0.8, 1.2), 3)
+
+        return NPCData(
+            id=npc_id,
+            name=dao_name,
+            dao_name=dao_name,
+            age=age,
+            lifespan=lifespan,
+            realm_level=realm_level,
+            sect=sect,
+            sect_type=sect_type,
+            sect_specialty=sect_specialty,
+            personality=personality,
+            occupation=occupation,
+            location="新手村",
+            morality=morality,
+            attack=attack,
+            defense=defense,
+            speed=speed,
+            crit_rate=crit_rate,
+            dodge_rate=dodge_rate,
+        )
+    
+    def get_realm_name(self) -> str:
+        """获取境界名称"""
+        realm_info = get_realm_info(self.data.realm_level)
+        return realm_info.name if realm_info else "凡人"
+    
+    def get_sect_description(self) -> str:
+        """获取门派描述"""
+        if self.data.sect in SECT_DETAILS:
+            sect_info = SECT_DETAILS[self.data.sect]
+            return f"{self.data.sect}（{sect_info.get('type', '未知')}）- {sect_info.get('description', '')[:50]}..."
+        return self.data.sect
+    
+    def get_sect_info(self) -> Dict[str, str]:
+        """获取门派详细信息"""
+        if self.data.sect in SECT_DETAILS:
+            return SECT_DETAILS[self.data.sect]
+        return {}
+    
+    def get_title(self, for_self: bool = False) -> str:
+        """获取称谓"""
+        return get_realm_title(self.data.realm_level, for_self)
+    
+    def add_memory(self, content: str, importance: int = 5, emotion: str = "neutral"):
+        """
+        添加记忆
+        
+        Args:
+            content: 记忆内容
+            importance: 重要性
+            emotion: 情感
+        """
+        memory = NPCMemory(
+            content=content,
+            importance=importance,
+            emotion=emotion,
+        )
+        self.data.memories.append(memory)
+        
+        # 限制记忆数量
+        max_memories = GAME_CONFIG["npc"]["npc_interaction_memory_limit"]
+        if len(self.data.memories) > max_memories:
+            # 删除重要性最低的记忆
+            self.data.memories.sort(key=lambda m: m.importance)
+            self.data.memories = self.data.memories[-max_memories:]
+    
+    def update_favor(self, player_name: str, delta: int):
+        """
+        更新好感度
+        
+        Args:
+            player_name: 玩家名字
+            delta: 变化值
+        """
+        current = self.data.favor.get(player_name, 0)
+        self.data.favor[player_name] = max(-100, min(100, current + delta))
+    
+    def get_favor(self, player_name: str) -> int:
+        """
+        获取好感度
+        
+        Args:
+            player_name: 玩家名字
+            
+        Returns:
+            好感度值
+        """
+        return self.data.favor.get(player_name, 0)
+    
+    def get_greeting(self, player_name: str) -> str:
+        """
+        获取问候语
+        
+        Args:
+            player_name: 玩家名字
+            
+        Returns:
+            问候语
+        """
+        favor = self.get_favor(player_name)
+        
+        if favor >= 50:
+            greetings = [
+                f"{player_name}道友！好久不见，别来无恙？",
+                f"哈哈，{player_name}道友来了，快请进！",
+                f"{player_name}道友，今日可要多叙叙旧。",
+            ]
+        elif favor >= 0:
+            greetings = [
+                f"{player_name}道友，有礼了。",
+                f"见过{player_name}道友。",
+                f"{player_name}道友安好。",
+            ]
+        elif favor >= -50:
+            greetings = [
+                f"...（冷淡地看着{player_name}）",
+                f"{player_name}道友，有何贵干？",
+                f"哼，{player_name}...",
+            ]
+        else:
+            greetings = [
+                f"{player_name}！你还敢出现在我面前？",
+                f"滚！我不想见到你！",
+                f"（怒目而视）{player_name}...",
+            ]
+        
+        return random.choice(greetings)
+    
+    def advance_time(self, days: int = 1):
+        """
+        推进时间
+
+        Args:
+            days: 天数
+        """
+        self.data.age += days // 365
+
+        # 检查寿元
+        if self.data.age >= self.data.lifespan:
+            self.data.is_alive = False
+
+    def mark_as_dead(self, killer_name: str, reason: str, location: str):
+        """
+        标记NPC死亡
+
+        Args:
+            killer_name: 凶手名称
+            reason: 死亡原因
+            location: 死亡地点
+        """
+        import time
+        from game.death_manager import death_manager
+
+        # 更新死亡地点
+        self.data.location = location
+
+        # 调用death_manager保存记录并设置死亡状态
+        death_record = death_manager.mark_npc_dead(self, killer_name, reason)
+
+        # 填充死亡信息
+        self.data.death_info = {
+            "killer_name": killer_name,
+            "reason": reason,
+            "location": location,
+            "timestamp": time.time(),
+            "realm_at_death": self.get_realm_name(),
+            "age_at_death": self.data.age,
+            "death_time": death_record.death_time.isoformat(),
+            "can_resurrect": death_record.can_resurrect,
+        }
+
+        # 根据death_manager的判断更新can_resurrect
+        self.data.can_resurrect = death_record.can_resurrect
+
+        # 添加死亡记忆到独立系统
+        self.independent._add_memory(
+            f"在{location}被{killer_name}击杀，死因：{reason}",
+            importance=10
+        )
+
+    def resurrect(self) -> bool:
+        """
+        复活NPC
+
+        Returns:
+            是否成功复活
+        """
+        # 检查是否可复活
+        if not self.data.can_resurrect:
+            return False
+
+        # 检查是否已死亡
+        if self.data.is_alive:
+            return False
+
+        # 设置存活状态
+        self.data.is_alive = True
+
+        # 清除死亡信息
+        self.data.death_info = {}
+
+        # 添加复活记忆
+        self.independent._add_memory(
+            "奇迹般地复活了，重获新生",
+            importance=10
+        )
+
+        return True
+
+    def get_morality_description(self) -> str:
+        """
+        获取善恶值描述
+
+        Returns:
+            善恶描述字符串
+        """
+        morality = self.data.morality
+
+        if morality < -50:
+            return "极恶"
+        elif morality < -20:
+            return "邪恶"
+        elif morality < 0:
+            return "偏恶"
+        elif morality == 0:
+            return "中立"
+        elif morality <= 20:
+            return "偏善"
+        elif morality <= 50:
+            return "善良"
+        else:
+            return "大善"
+
+    def is_evil(self) -> bool:
+        """
+        是否邪恶
+
+        Returns:
+            善恶值是否为负
+        """
+        return self.data.morality < 0
+
+    def is_good(self) -> bool:
+        """
+        是否善良
+
+        Returns:
+            善恶值是否为正
+        """
+        return self.data.morality > 0
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        转换为字典
+
+        Returns:
+            包含NPC数据的字典
+        """
+        data = {
+            "id": self.data.id,
+            "name": self.data.name,
+            "dao_name": self.data.dao_name,
+            "age": self.data.age,
+            "lifespan": self.data.lifespan,
+            "realm_level": self.data.realm_level,
+            "sect": self.data.sect,
+            "personality": self.data.personality,
+            "occupation": self.data.occupation,
+            "location": self.data.location,
+            "favor": self.data.favor,
+            "is_alive": self.data.is_alive,
+            "death_info": self.data.death_info,
+            "can_resurrect": self.data.can_resurrect,
+            "morality": self.data.morality,
+            "sect_type": self.data.sect_type,
+            "sect_specialty": self.data.sect_specialty,
+            "attack": self.data.attack,
+            "defense": self.data.defense,
+            "speed": self.data.speed,
+            "crit_rate": self.data.crit_rate,
+            "dodge_rate": self.data.dodge_rate,
+            "combat_wins": self.data.combat_wins,
+            "combat_losses": self.data.combat_losses,
+            "combat_record": self.combat_record,
+        }
+        
+        # ========== 新系统数据序列化 ==========
+        # 目标系统
+        if self.goals:
+            data["goals"] = [
+                {
+                    "goal_id": g.goal_id,
+                    "goal_type": g.goal_type,
+                    "target": g.target,
+                    "priority": g.priority,
+                    "progress": g.progress,
+                    "is_completed": g.is_completed,
+                    "is_abandoned": g.is_abandoned,
+                    "created_at": g.created_at,
+                    "completed_at": g.completed_at,
+                }
+                for g in self.goals
+            ]
+        
+        # 日程系统
+        if self.schedule:
+            data["schedule"] = {
+                str(hour): {
+                    "name": activity.name,
+                    "activity_type": activity.activity_type,
+                    "location": activity.location,
+                    "duration": activity.duration,
+                }
+                for hour, activity in self.schedule.items()
+            }
+        
+        # 价值观系统
+        if self.values:
+            data["values"] = self.values.to_dict() if hasattr(self.values, 'to_dict') else {}
+        
+        # 说话风格
+        if self.speaking_style:
+            data["speaking_style"] = self.speaking_style.to_dict() if hasattr(self.speaking_style, 'to_dict') else {}
+        
+        # 成长记录
+        if self.life_record:
+            data["life_record"] = self.life_record.to_dict() if hasattr(self.life_record, 'to_dict') else {}
+        
+        # 增强记忆系统
+        if self.enhanced_memory:
+            data["enhanced_memory"] = self.enhanced_memory.to_dict() if hasattr(self.enhanced_memory, 'to_dict') else {}
+        
+        # 主动行为冷却
+        if self.proactive_cooldowns:
+            data["proactive_cooldowns"] = self.proactive_cooldowns
+        
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'NPC':
+        """
+        从字典创建NPC
+
+        Args:
+            data: 包含NPC数据的字典
+
+        Returns:
+            NPC对象
+        """
+        # 创建NPCData对象，使用默认值确保向后兼容
+        # 处理realm_level可能是字符串的情况
+        realm_level_raw = data.get("realm_level", 0)
+        if isinstance(realm_level_raw, str):
+            from config import REALM_NAME_TO_LEVEL
+            # 先尝试从境界名称映射
+            realm_level = REALM_NAME_TO_LEVEL.get(realm_level_raw, None)
+            if realm_level is None:
+                # 如果不是境界名称，尝试作为数字解析
+                if realm_level_raw.isdigit():
+                    realm_level = int(realm_level_raw)
+                else:
+                    realm_level = 0
+        else:
+            realm_level = int(realm_level_raw) if realm_level_raw is not None else 0
+        
+        npc_data = NPCData(
+            id=data.get("id", f"npc_{random.randint(10000, 99999)}"),
+            name=data.get("name", ""),
+            dao_name=data.get("dao_name", ""),
+            age=data.get("age", 20),
+            lifespan=data.get("lifespan", 100),
+            realm_level=realm_level,
+            sect=data.get("sect", "散修"),
+            personality=data.get("personality", "普通"),
+            occupation=data.get("occupation", "散修"),
+            location=data.get("location", "新手村"),
+            sect_type=data.get("sect_type", ""),
+            sect_specialty=data.get("sect_specialty", ""),
+            favor=data.get("favor", {}),
+            is_alive=data.get("is_alive", True),
+            death_info=data.get("death_info", {}),
+            can_resurrect=data.get("can_resurrect", True),
+            morality=data.get("morality", 0),
+            attack=data.get("attack", 10),
+            defense=data.get("defense", 5),
+            speed=data.get("speed", 8),
+            crit_rate=data.get("crit_rate", 0.03),
+            dodge_rate=data.get("dodge_rate", 0.03),
+            combat_wins=data.get("combat_wins", 0),
+            combat_losses=data.get("combat_losses", 0),
+        )
+
+        # 创建NPC对象
+        npc = cls(npc_data)
+
+        # 恢复战斗记录（如果存在）
+        if "combat_record" in data:
+            npc.combat_record = data["combat_record"]
+        
+        # ========== 恢复新系统数据 ==========
+        # 恢复目标系统
+        if "goals" in data:
+            npc.goals = []
+            for goal_data in data["goals"]:
+                goal = Goal(
+                    goal_id=goal_data.get("goal_id", ""),
+                    npc_id=npc.data.id,
+                    goal_type=goal_data.get("goal_type", ""),
+                    target=goal_data.get("target", ""),
+                    priority=goal_data.get("priority", 5),
+                )
+                goal.progress = goal_data.get("progress", 0.0)
+                goal.is_completed = goal_data.get("is_completed", False)
+                goal.is_abandoned = goal_data.get("is_abandoned", False)
+                goal.created_at = goal_data.get("created_at", 0)
+                goal.completed_at = goal_data.get("completed_at")
+                npc.goals.append(goal)
+        
+        # 恢复日程系统
+        if "schedule" in data:
+            npc.schedule = {}
+            for hour_str, activity_data in data["schedule"].items():
+                hour = int(hour_str)
+                activity = Activity(
+                    name=activity_data.get("name", ""),
+                    activity_type=activity_data.get("activity_type", ""),
+                    location=activity_data.get("location", ""),
+                    duration=activity_data.get("duration", 1),
+                )
+                npc.schedule[hour] = activity
+        
+        # 恢复价值观系统
+        if "values" in data and data["values"]:
+            npc.values = ValuesSystem()
+            if hasattr(npc.values, 'from_dict'):
+                npc.values.from_dict(data["values"])
+        
+        # 恢复说话风格
+        if "speaking_style" in data and data["speaking_style"]:
+            npc.speaking_style = SpeakingStyle()
+            if hasattr(npc.speaking_style, 'from_dict'):
+                npc.speaking_style.from_dict(data["speaking_style"])
+        
+        # 恢复成长记录
+        if "life_record" in data and data["life_record"]:
+            npc.life_record = NPCLifeRecord(npc.data.id, npc.data.name)
+            if hasattr(npc.life_record, 'from_dict'):
+                npc.life_record.from_dict(data["life_record"])
+        
+        # 恢复增强记忆系统
+        if "enhanced_memory" in data and data["enhanced_memory"]:
+            npc.enhanced_memory = EnhancedMemorySystem(npc.data.id)
+            if hasattr(npc.enhanced_memory, 'from_dict'):
+                npc.enhanced_memory.from_dict(data["enhanced_memory"])
+        
+        # 恢复主动行为冷却
+        if "proactive_cooldowns" in data:
+            npc.proactive_cooldowns = data["proactive_cooldowns"]
+
+        return npc
+
+    def __str__(self) -> str:
+        return f"{self.data.dao_name} ({self.get_realm_name()})"
+
+
+class NPCManager:
+    """NPC管理器 - 集成独立系统"""
+    
+    def __init__(self):
+        """初始化NPC管理器"""
+        self.npcs: Dict[str, NPC] = {}
+        self.independent_manager = NPCIndependentManager()
+        self.player_location: str = "新手村"
+    
+    def generate_npcs_for_location(self, location: str, count: int = None) -> List[NPC]:
+        """
+        为地点生成NPC
+        
+        Args:
+            location: 地点名称
+            count: 数量，默认使用配置
+            
+        Returns:
+            NPC列表
+        """
+        if count is None:
+            count = GAME_CONFIG["npc"]["npc_count_per_location"]
+        
+        npcs = []
+        for _ in range(count):
+            npc = NPC()
+            npc.data.location = location
+            self.npcs[npc.data.id] = npc
+            # 同时添加到独立系统管理器
+            self.independent_manager.add_npc(npc.independent, location)
+            npcs.append(npc)
+        
+        return npcs
+    
+    def get_npc(self, npc_id: str) -> Optional[NPC]:
+        """
+        获取NPC
+        
+        Args:
+            npc_id: NPC ID
+            
+        Returns:
+            NPC对象
+        """
+        return self.npcs.get(npc_id)
+    
+    def get_npcs_in_location(self, location: str) -> List[NPC]:
+        """
+        获取地点的所有NPC
+        
+        Args:
+            location: 地点名称
+            
+        Returns:
+            NPC列表
+        """
+        return [npc for npc in self.npcs.values() if npc.data.location == location and npc.data.is_alive]
+    
+    def get_npc_by_name(self, name: str) -> Optional[NPC]:
+        """
+        根据名字获取NPC
+        
+        Args:
+            name: NPC名字
+            
+        Returns:
+            NPC对象（只返回存活的NPC）
+        """
+        for npc in self.npcs.values():
+            if npc.data.name == name or npc.data.dao_name == name:
+                # 只返回存活的NPC
+                if npc.data.is_alive:
+                    return npc
+        return None
+    
+    def advance_time_for_all(self, days: int = 1):
+        """
+        为所有NPC推进时间
+        
+        Args:
+            days: 天数
+        """
+        for npc in self.npcs.values():
+            npc.advance_time(days)
+    
+    def update_all(self, current_time: float = None, player_location: str = None):
+        """
+        更新所有NPC（独立系统）
+        
+        Args:
+            current_time: 当前时间戳
+            player_location: 玩家当前位置
+        """
+        if current_time is None:
+            current_time = time.time()
+        if player_location:
+            self.player_location = player_location
+        
+        # 使用独立系统管理器批量更新
+        self.independent_manager.update_all(current_time, self.player_location)
+        
+        # 同时更新NPC的基础状态
+        for npc in self.npcs.values():
+            if npc.data.location == self.player_location:
+                npc.update(current_time, player_nearby=True)
+    
+    def socialize_npcs(self, npc_id1: str, npc_id2: str):
+        """
+        两个NPC之间进行社交
+        
+        Args:
+            npc_id1: 第一个NPC的ID
+            npc_id2: 第二个NPC的ID
+        """
+        npc1 = self.npcs.get(npc_id1)
+        npc2 = self.npcs.get(npc_id2)
+        
+        if npc1 and npc2:
+            npc1.socialize_with(npc2)
+            self.independent_manager.socialize_between(npc_id1, npc_id2)
+    
+    def get_independent_stats(self) -> Dict[str, Any]:
+        """获取独立系统统计信息"""
+        return self.independent_manager.get_stats()
+    
+    def pause_npc(self, npc_id: str):
+        """暂停指定NPC的独立更新"""
+        self.independent_manager.pause_npc(npc_id)
+    
+    def resume_npc(self, npc_id: str):
+        """恢复指定NPC的独立更新"""
+        self.independent_manager.resume_npc(npc_id)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """转换为字典"""
+        return {
+            npc_id: npc.to_dict()
+            for npc_id, npc in self.npcs.items()
+        }

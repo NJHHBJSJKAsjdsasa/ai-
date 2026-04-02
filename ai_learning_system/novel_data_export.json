@@ -1,0 +1,728 @@
+{
+  "sects": {
+    "七玄门": {
+      "description": "由七绝上人创立，曾雄霸镜州数十载，后被挤出镜州城，搬迁至彩霞山",
+      "type": "正道",
+      "location": "彩霞山",
+      "strength": "三流地方势力，门下弟子三四千人"
+    },
+    "野狼帮": {
+      "description": "前身是镜州马贼，凶狠嗜血，与七玄门是死敌",
+      "type": "邪道",
+      "location": "镜州",
+      "strength": "与七玄门抗衡的本地势力"
+    },
+    "黄枫谷": {
+      "description": "越国七大派之一，韩立筑基后加入的门派",
+      "type": "正道",
+      "location": "越国",
+      "strength": "越国七大派之一"
+    },
+    "掩月宗": {
+      "description": "越国七大派之一，以女修为主",
+      "type": "正道",
+      "location": "越国",
+      "strength": "越国七大派之一"
+    },
+    "清虚门": {
+      "description": "越国七大派之一，道家宗门",
+      "type": "正道",
+      "location": "越国",
+      "strength": "越国七大派之一"
+    },
+    "灵兽山": {
+      "description": "越国七大派之一，擅长驭兽",
+      "type": "正道",
+      "location": "越国",
+      "strength": "越国七大派之一"
+    },
+    "巨剑门": {
+      "description": "越国七大派之一，剑修门派",
+      "type": "正道",
+      "location": "越国",
+      "strength": "越国七大派之一"
+    },
+    "天阙堡": {
+      "description": "越国七大派之一，以炼体著称",
+      "type": "正道",
+      "location": "越国",
+      "strength": "越国七大派之一"
+    },
+    "化刀坞": {
+      "description": "越国七大派之一，刀修门派",
+      "type": "正道",
+      "location": "越国",
+      "strength": "越国七大派之一"
+    }
+  },
+  "techniques": {
+    "长春功": {
+      "name": "长春功",
+      "description": "木属性基础功法，韩立修仙之路的起点。修炼此功可延年益寿，固本培元。",
+      "type": "功法",
+      "element": "木",
+      "realm_required": 1,
+      "effects": [
+        "延年益寿",
+        "固本培元",
+        "木属性亲和"
+      ],
+      "learning_difficulty": 30,
+      "cultivation_speed_bonus": 0.1,
+      "combat_power_bonus": 0.05,
+      "special_abilities": [
+        "催熟灵药感知"
+      ],
+      "origin": "《凡人修仙传》- 韩立早期主修功法"
+    },
+    "眨眼剑法": {
+      "name": "眨眼剑法",
+      "description": "墨大夫传授的凡俗剑法，以快制胜，出其不意。虽非修仙功法，但在凡人阶段威力不俗。",
+      "type": "武技",
+      "element": "无",
+      "realm_required": 0,
+      "effects": [
+        "剑速极快",
+        "出其不意"
+      ],
+      "learning_difficulty": 40,
+      "cultivation_speed_bonus": 0.0,
+      "combat_power_bonus": 0.3,
+      "special_abilities": [
+        "快剑连击"
+      ],
+      "origin": "《凡人修仙传》- 墨大夫传授"
+    },
+    "罗烟步": {
+      "name": "罗烟步",
+      "description": "轻身功法，身形如烟，难以捉摸。修炼至大成可瞬息千里。",
+      "type": "身法",
+      "element": "无",
+      "realm_required": 1,
+      "effects": [
+        "身形飘忽",
+        "闪避提升",
+        "移动加速"
+      ],
+      "learning_difficulty": 45,
+      "cultivation_speed_bonus": 0.0,
+      "combat_power_bonus": 0.1,
+      "special_abilities": [
+        "烟遁",
+        "闪避强化"
+      ],
+      "origin": "《凡人修仙传》- 韩立早期身法"
+    },
+    "青元剑诀": {
+      "name": "青元剑诀",
+      "description": "韩立主修功法，由青元子所创，可修炼至化神期。剑气纵横，威力巨大。",
+      "type": "功法",
+      "element": "木",
+      "realm_required": 2,
+      "effects": [
+        "剑气纵横",
+        "威力巨大",
+        "木属性强化"
+      ],
+      "learning_difficulty": 60,
+      "cultivation_speed_bonus": 0.2,
+      "combat_power_bonus": 0.3,
+      "special_abilities": [
+        "剑芒",
+        "剑丝",
+        "青元剑盾"
+      ],
+      "origin": "《凡人修仙传》- 青元子所创"
+    },
+    "大衍决": {
+      "name": "大衍决",
+      "description": "大衍神君所创，强化神识的绝世功法。修炼后可神识倍增，分心多用。",
+      "type": "秘术",
+      "element": "无",
+      "realm_required": 4,
+      "effects": [
+        "神识倍增",
+        "分心多用",
+        "感知强化"
+      ],
+      "learning_difficulty": 80,
+      "cultivation_speed_bonus": 0.0,
+      "combat_power_bonus": 0.2,
+      "special_abilities": [
+        "神识攻击",
+        "分心控制",
+        "傀儡操控"
+      ],
+      "origin": "《凡人修仙传》- 大衍神君所创"
+    },
+    "梵圣真魔功": {
+      "name": "梵圣真魔功",
+      "description": "魔界顶级功法，韩立主修功法之一。修炼后肉身强横，魔气滔天。",
+      "type": "功法",
+      "element": "魔",
+      "realm_required": 5,
+      "effects": [
+        "肉身强化",
+        "魔气滔天",
+        "力量暴增"
+      ],
+      "learning_difficulty": 85,
+      "cultivation_speed_bonus": 0.25,
+      "combat_power_bonus": 0.5,
+      "special_abilities": [
+        "魔化",
+        "巨力",
+        "不灭之身"
+      ],
+      "origin": "《凡人修仙传》- 魔界功法"
+    },
+    "炼神术": {
+      "name": "炼神术",
+      "description": "仙界禁术，可无限强化神识。修炼难度极高，但效果逆天。",
+      "type": "禁术",
+      "element": "仙",
+      "realm_required": 8,
+      "effects": [
+        "神识无限增长",
+        "逆天改命",
+        "神魂不灭"
+      ],
+      "learning_difficulty": 95,
+      "cultivation_speed_bonus": 0.0,
+      "combat_power_bonus": 0.4,
+      "special_abilities": [
+        "神识化形",
+        "神魂攻击",
+        "不灭神魂"
+      ],
+      "origin": "《凡人修仙传》- 仙界禁术"
+    },
+    "基础吐纳术": {
+      "name": "基础吐纳术",
+      "description": "最基础的修炼功法，所有修士入门必修。",
+      "type": "功法",
+      "element": "无",
+      "realm_required": 1,
+      "effects": [
+        "基础修炼",
+        "吸纳灵气"
+      ],
+      "learning_difficulty": 10,
+      "cultivation_speed_bonus": 0.05,
+      "combat_power_bonus": 0.0,
+      "special_abilities": [],
+      "origin": "通用功法"
+    },
+    "火球术": {
+      "name": "火球术",
+      "description": "最基础的火属性法术，练气期修士必修。",
+      "type": "武技",
+      "element": "火",
+      "realm_required": 1,
+      "effects": [
+        "火焰攻击",
+        "范围伤害"
+      ],
+      "learning_difficulty": 20,
+      "cultivation_speed_bonus": 0.0,
+      "combat_power_bonus": 0.15,
+      "special_abilities": [
+        "火球连发"
+      ],
+      "origin": "通用法术"
+    },
+    "御风术": {
+      "name": "御风术",
+      "description": "基础飞行法术，练气期修士可学习。",
+      "type": "身法",
+      "element": "风",
+      "realm_required": 1,
+      "effects": [
+        "御风飞行",
+        "速度提升"
+      ],
+      "learning_difficulty": 25,
+      "cultivation_speed_bonus": 0.0,
+      "combat_power_bonus": 0.05,
+      "special_abilities": [
+        "短距离飞行"
+      ],
+      "origin": "通用法术"
+    },
+    "金刚罩": {
+      "name": "金刚罩",
+      "description": "防御法术，可形成护盾保护自己。",
+      "type": "秘术",
+      "element": "金",
+      "realm_required": 1,
+      "effects": [
+        "护盾防御",
+        "减伤"
+      ],
+      "learning_difficulty": 30,
+      "cultivation_speed_bonus": 0.0,
+      "combat_power_bonus": 0.1,
+      "special_abilities": [
+        "护盾反震"
+      ],
+      "origin": "通用法术"
+    }
+  },
+  "items": {
+    "掌天瓶": {
+      "name": "掌天瓶",
+      "description": "可催熟灵药的神秘宝瓶，韩立最大的机缘。瓶内可凝聚绿液，一滴可让灵药瞬间成熟。",
+      "type": "法宝",
+      "rarity": "神话",
+      "effects": [
+        "催熟灵药",
+        "凝聚绿液",
+        "时间加速"
+      ],
+      "value": 9999999,
+      "stackable": false,
+      "max_stack": 1,
+      "usable": true,
+      "level_required": 0,
+      "origin": "《凡人修仙传》- 韩立机缘所得"
+    },
+    "青竹蜂云剑": {
+      "name": "青竹蜂云剑",
+      "description": "韩立本命法宝，由万年金雷竹炼制而成。可释放辟邪神雷，克制邪魔。",
+      "type": "法宝",
+      "rarity": "传说",
+      "effects": [
+        "辟邪神雷",
+        "剑阵威力",
+        "克制邪魔"
+      ],
+      "value": 500000,
+      "stackable": false,
+      "max_stack": 1,
+      "usable": true,
+      "level_required": 4,
+      "origin": "《凡人修仙传》- 韩立本命法宝"
+    },
+    "风雷翅": {
+      "name": "风雷翅",
+      "description": "由雷鹏翅膀炼制而成，飞行速度极快。可施展风雷遁术，瞬息千里。",
+      "type": "法宝",
+      "rarity": "传说",
+      "effects": [
+        "风雷遁术",
+        "速度无双",
+        "飞行加速"
+      ],
+      "value": 300000,
+      "stackable": false,
+      "max_stack": 1,
+      "usable": true,
+      "level_required": 4,
+      "origin": "《凡人修仙传》- 韩立法宝"
+    },
+    "虚天鼎": {
+      "name": "虚天鼎",
+      "description": "虚天殿至宝，可炼丹炼器。鼎内空间巨大，可容纳万物。",
+      "type": "法宝",
+      "rarity": "传说",
+      "effects": [
+        "炼丹增效",
+        "炼器加成",
+        "储物"
+      ],
+      "value": 800000,
+      "stackable": false,
+      "max_stack": 1,
+      "usable": true,
+      "level_required": 5,
+      "origin": "《凡人修仙传》- 虚天殿至宝"
+    },
+    "储物袋": {
+      "name": "储物袋",
+      "description": "低级修士常用的储物法宝，内有数尺空间。",
+      "type": "法宝",
+      "rarity": "普通",
+      "effects": [
+        "储物"
+      ],
+      "value": 100,
+      "stackable": false,
+      "max_stack": 1,
+      "usable": true,
+      "level_required": 1,
+      "origin": "通用法宝"
+    },
+    "筑基丹": {
+      "name": "筑基丹",
+      "description": "练气期突破筑基期必备丹药。服用后可大大增加突破成功率。",
+      "type": "丹药",
+      "rarity": "稀有",
+      "effects": [
+        "突破筑基",
+        "固本培元",
+        "提升成功率"
+      ],
+      "value": 5000,
+      "stackable": true,
+      "max_stack": 10,
+      "usable": true,
+      "level_required": 1,
+      "origin": "《凡人修仙传》- 突破丹药"
+    },
+    "结丹期丹药": {
+      "name": "结丹期丹药",
+      "description": "辅助结丹的珍贵丹药。可提升结丹成功率，稳固金丹品质。",
+      "type": "丹药",
+      "rarity": "史诗",
+      "effects": [
+        "辅助结丹",
+        "提升成功率",
+        "稳固金丹"
+      ],
+      "value": 20000,
+      "stackable": true,
+      "max_stack": 5,
+      "usable": true,
+      "level_required": 2,
+      "origin": "《凡人修仙传》- 突破丹药"
+    },
+    "元婴期丹药": {
+      "name": "元婴期丹药",
+      "description": "辅助凝结元婴的珍贵丹药。可提升元婴品质，增强神识。",
+      "type": "丹药",
+      "rarity": "传说",
+      "effects": [
+        "辅助凝婴",
+        "提升品质",
+        "增强神识"
+      ],
+      "value": 100000,
+      "stackable": true,
+      "max_stack": 3,
+      "usable": true,
+      "level_required": 3,
+      "origin": "《凡人修仙传》- 突破丹药"
+    },
+    "回气丹": {
+      "name": "回气丹",
+      "description": "恢复法力的基础丹药。服用后可快速恢复部分法力。",
+      "type": "丹药",
+      "rarity": "普通",
+      "effects": [
+        "恢复法力",
+        "快速回蓝"
+      ],
+      "value": 50,
+      "stackable": true,
+      "max_stack": 99,
+      "usable": true,
+      "level_required": 1,
+      "origin": "通用丹药"
+    },
+    "疗伤丹": {
+      "name": "疗伤丹",
+      "description": "治疗伤势的基础丹药。服用后可恢复伤势，治疗内伤。",
+      "type": "丹药",
+      "rarity": "普通",
+      "effects": [
+        "恢复伤势",
+        "治疗内伤"
+      ],
+      "value": 50,
+      "stackable": true,
+      "max_stack": 99,
+      "usable": true,
+      "level_required": 1,
+      "origin": "通用丹药"
+    },
+    "增元丹": {
+      "name": "增元丹",
+      "description": "增加修为的丹药。服用后可获得大量修为经验。",
+      "type": "丹药",
+      "rarity": "优秀",
+      "effects": [
+        "增加修为",
+        "经验加成"
+      ],
+      "value": 200,
+      "stackable": true,
+      "max_stack": 50,
+      "usable": true,
+      "level_required": 1,
+      "origin": "通用丹药"
+    },
+    "万年灵乳": {
+      "name": "万年灵乳",
+      "description": "天地灵物，可瞬间恢复全部法力。极为珍贵，有价无市。",
+      "type": "材料",
+      "rarity": "传说",
+      "effects": [
+        "瞬间回蓝",
+        "恢复全部法力",
+        "疗伤"
+      ],
+      "value": 50000,
+      "stackable": true,
+      "max_stack": 10,
+      "usable": true,
+      "level_required": 1,
+      "origin": "《凡人修仙传》- 天地灵物"
+    },
+    "金雷竹": {
+      "name": "金雷竹",
+      "description": "可释放辟邪神雷的珍稀灵竹。是炼制雷属性法宝的顶级材料。",
+      "type": "材料",
+      "rarity": "史诗",
+      "effects": [
+        "辟邪神雷",
+        "炼制法宝",
+        "克制邪魔"
+      ],
+      "value": 100000,
+      "stackable": true,
+      "max_stack": 10,
+      "usable": false,
+      "level_required": 3,
+      "origin": "《凡人修仙传》- 珍稀材料"
+    },
+    "千年灵草": {
+      "name": "千年灵草",
+      "description": "生长千年的灵草，药效强大。是炼制高级丹药的主药。",
+      "type": "材料",
+      "rarity": "稀有",
+      "effects": [
+        "炼丹材料",
+        "药效强大"
+      ],
+      "value": 5000,
+      "stackable": true,
+      "max_stack": 20,
+      "usable": false,
+      "level_required": 2,
+      "origin": "通用材料"
+    },
+    "百年灵草": {
+      "name": "百年灵草",
+      "description": "生长百年的灵草，药效中等。是炼制中级丹药的常用药材。",
+      "type": "材料",
+      "rarity": "优秀",
+      "effects": [
+        "炼丹材料",
+        "药效中等"
+      ],
+      "value": 500,
+      "stackable": true,
+      "max_stack": 50,
+      "usable": false,
+      "level_required": 1,
+      "origin": "通用材料"
+    },
+    "灵矿石": {
+      "name": "灵矿石",
+      "description": "蕴含灵气的矿石，可提炼灵石或炼制法宝。",
+      "type": "材料",
+      "rarity": "普通",
+      "effects": [
+        "提炼灵石",
+        "炼器材料"
+      ],
+      "value": 100,
+      "stackable": true,
+      "max_stack": 99,
+      "usable": false,
+      "level_required": 1,
+      "origin": "通用材料"
+    },
+    "下品灵石": {
+      "name": "下品灵石",
+      "description": "最基础的灵石，蕴含少量灵气。是修仙界的通用货币。",
+      "type": "灵石",
+      "rarity": "普通",
+      "effects": [
+        "货币",
+        "恢复微量法力"
+      ],
+      "value": 1,
+      "stackable": true,
+      "max_stack": 9999,
+      "usable": true,
+      "level_required": 0,
+      "origin": "通用货币"
+    },
+    "中品灵石": {
+      "name": "中品灵石",
+      "description": "品质较好的灵石，蕴含中等灵气。一颗中品灵石可兑换一百颗下品灵石。",
+      "type": "灵石",
+      "rarity": "优秀",
+      "effects": [
+        "货币",
+        "恢复少量法力"
+      ],
+      "value": 100,
+      "stackable": true,
+      "max_stack": 999,
+      "usable": true,
+      "level_required": 0,
+      "origin": "通用货币"
+    },
+    "上品灵石": {
+      "name": "上品灵石",
+      "description": "高品质的灵石，蕴含大量灵气。一颗上品灵石可兑换一百颗中品灵石。",
+      "type": "灵石",
+      "rarity": "稀有",
+      "effects": [
+        "货币",
+        "恢复大量法力"
+      ],
+      "value": 10000,
+      "stackable": true,
+      "max_stack": 99,
+      "usable": true,
+      "level_required": 0,
+      "origin": "通用货币"
+    },
+    "极品灵石": {
+      "name": "极品灵石",
+      "description": "极品灵石，蕴含海量灵气。极为稀有，有价无市。",
+      "type": "灵石",
+      "rarity": "史诗",
+      "effects": [
+        "货币",
+        "恢复海量法力",
+        "突破辅助"
+      ],
+      "value": 1000000,
+      "stackable": true,
+      "max_stack": 10,
+      "usable": true,
+      "level_required": 0,
+      "origin": "珍稀货币"
+    },
+    "长春功秘籍": {
+      "name": "长春功秘籍",
+      "description": "记载长春功修炼之法的秘籍。木属性基础功法。",
+      "type": "秘籍",
+      "rarity": "优秀",
+      "effects": [
+        "学习长春功"
+      ],
+      "value": 1000,
+      "stackable": false,
+      "max_stack": 1,
+      "usable": true,
+      "level_required": 1,
+      "origin": "《凡人修仙传》- 基础功法"
+    },
+    "眨眼剑法秘籍": {
+      "name": "眨眼剑法秘籍",
+      "description": "记载眨眼剑法的秘籍。以快制胜的凡俗剑法。",
+      "type": "秘籍",
+      "rarity": "普通",
+      "effects": [
+        "学习眨眼剑法"
+      ],
+      "value": 500,
+      "stackable": false,
+      "max_stack": 1,
+      "usable": true,
+      "level_required": 0,
+      "origin": "《凡人修仙传》- 凡俗武技"
+    }
+  },
+  "characters": {
+    "韩立": {
+      "alias": [
+        "韩老魔",
+        "二愣子",
+        "韩跑跑"
+      ],
+      "description": "主角，从山村穷小子成长为纵横三界的大能",
+      "personality": "谨慎小心，善于逃跑，重情重义",
+      "realm": "大乘期"
+    },
+    "墨大夫": {
+      "alias": [
+        "墨居仁"
+      ],
+      "description": "韩立的第一个师父，教会韩立谨慎的性格",
+      "personality": "老谋深算，心狠手辣",
+      "realm": "凡人"
+    },
+    "南宫婉": {
+      "alias": [
+        "掩月宗女修"
+      ],
+      "description": "韩立的道侣，掩月宗修士",
+      "personality": "温婉贤淑，外柔内刚",
+      "realm": "大乘期"
+    },
+    "大衍神君": {
+      "alias": [],
+      "description": "人界天才，创造出大衍决",
+      "personality": "狂傲不羁，才华横溢",
+      "realm": "化神期"
+    }
+  },
+  "terms": [
+    "灵根",
+    "伪灵根",
+    "真灵根",
+    "天灵根",
+    "变异灵根",
+    "筑基",
+    "结丹",
+    "元婴",
+    "化神",
+    "炼虚",
+    "合体",
+    "大乘",
+    "渡劫",
+    "法力",
+    "神识",
+    "神念",
+    "灵力",
+    "真元",
+    "法宝",
+    "法器",
+    "灵器",
+    "古宝",
+    "通天灵宝",
+    "丹药",
+    "灵药",
+    "灵草",
+    "灵石",
+    "灵石矿",
+    "功法",
+    "秘术",
+    "神通",
+    "禁制",
+    "阵法",
+    "心魔",
+    "天劫",
+    "心魔劫",
+    "雷劫",
+    "飞升",
+    "储物袋",
+    "储物戒指",
+    "灵兽袋",
+    "灵兽",
+    "夺舍",
+    "转世",
+    "轮回",
+    "因果",
+    "机缘",
+    "洞府",
+    "秘境",
+    "遗迹",
+    "古修士洞府",
+    "正道",
+    "魔道",
+    "邪道",
+    "散修",
+    "宗门",
+    "拍卖会",
+    "坊市",
+    "交易会",
+    "黑市"
+  ]
+}

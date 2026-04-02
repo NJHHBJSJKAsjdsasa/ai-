@@ -1,0 +1,74 @@
+{
+  "stats": {
+    "name": "测试玩家",
+    "age": 25,
+    "lifespan": 80,
+    "realm_level": 2,
+    "realm_layer": 1,
+    "exp": 0,
+    "health": 100,
+    "max_health": 100,
+    "spiritual_power": 50,
+    "max_spiritual_power": 50,
+    "spirit_stones": 100,
+    "fortune": 55,
+    "karma": 0,
+    "spirit_root": "si",
+    "is_injured": false,
+    "injury_days": 0,
+    "is_dead": false,
+    "location": "新手村",
+    "game_year": 1,
+    "game_month": 1,
+    "game_day": 1,
+    "total_practices": 0,
+    "total_breakthroughs": 0,
+    "death_count": 0
+  },
+  "techniques": {
+    "learned": {},
+    "progress": {}
+  },
+  "inventory": {
+    "下品灵石": {
+      "count": 100,
+      "data": {
+        "name": "下品灵石",
+        "description": "最基础的灵石，蕴含少量灵气。是修仙界的通用货币。",
+        "type": "灵石",
+        "rarity": "普通",
+        "effects": [
+          "货币",
+          "恢复微量法力"
+        ],
+        "value": 1,
+        "stackable": true,
+        "max_stack": 9999,
+        "usable": true,
+        "level_required": 0,
+        "origin": "通用货币"
+      }
+    },
+    "筑基丹": {
+      "count": 3,
+      "data": {
+        "name": "筑基丹",
+        "description": "练气期突破筑基期必备丹药。服用后可大大增加突破成功率。",
+        "type": "丹药",
+        "rarity": "稀有",
+        "effects": [
+          "突破筑基",
+          "固本培元",
+          "提升成功率"
+        ],
+        "value": 5000,
+        "stackable": true,
+        "max_stack": 10,
+        "usable": true,
+        "level_required": 1,
+        "origin": "《凡人修仙传》- 突破丹药"
+      }
+    }
+  },
+  "equipped": {}
+}

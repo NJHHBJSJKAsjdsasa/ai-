@@ -1,0 +1,36 @@
+# 大文件和模型文件
+*.gguf
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.onnx
+models/
+weights/
+checkpoints/
+
+# 数据集和输出
+*.csv
+*.jsonl
+data/
+datasets/
+output/
+results/
+
+# 日志和临时文件
+*.log
+logs/
+temp/
+tmp/
+__pycache__/
+*.pyc
+.DS_Store
+
+# 小说等大文本
+*.txt
+
+# 环境文件
+.env
+.venv/
+venv/
