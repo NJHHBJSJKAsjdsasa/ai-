@@ -751,8 +751,16 @@ class Inventory:
             self.remove_item(item_name, count)
             return True, f"使用了{item_name} x{count}"
         
+        # 如果不是数据库道具也不是生成道具，但在背包中存在，直接使用
         if not item:
-            return False, f"道具{item_name}不存在"
+            # 检查是否可使用
+            item_data = self.items[item_name].get("data", {})
+            usable = item_data.get("usable", True)
+            if not usable:
+                return False, f"{item_name}无法使用"
+            # 使用道具
+            self.remove_item(item_name, count)
+            return True, f"使用了{item_name} x{count}"
         
         if not item.usable:
             return False, f"{item_name}无法使用"
