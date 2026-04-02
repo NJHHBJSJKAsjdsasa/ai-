@@ -5,6 +5,7 @@ import tkinter as tk
 from typing import Callable, Optional, Dict, List, Tuple, Union
 from enum import Enum
 import time
+import math
 
 
 class EasingType(Enum):
@@ -14,6 +15,33 @@ class EasingType(Enum):
     EASE_OUT = "ease_out"
     EASE_IN_OUT = "ease_in_out"
     EASE_OUT_BOUNCE = "ease_out_bounce"
+    EASE_IN_SINE = "ease_in_sine"
+    EASE_OUT_SINE = "ease_out_sine"
+    EASE_IN_OUT_SINE = "ease_in_out_sine"
+    EASE_IN_QUAD = "ease_in_quad"
+    EASE_OUT_QUAD = "ease_out_quad"
+    EASE_IN_OUT_QUAD = "ease_in_out_quad"
+    EASE_IN_CUBIC = "ease_in_cubic"
+    EASE_OUT_CUBIC = "ease_out_cubic"
+    EASE_IN_OUT_CUBIC = "ease_in_out_cubic"
+    EASE_IN_QUART = "ease_in_quart"
+    EASE_OUT_QUART = "ease_out_quart"
+    EASE_IN_OUT_QUART = "ease_in_out_quart"
+    EASE_IN_QUINT = "ease_in_quint"
+    EASE_OUT_QUINT = "ease_out_quint"
+    EASE_IN_OUT_QUINT = "ease_in_out_quint"
+    EASE_IN_EXPO = "ease_in_expo"
+    EASE_OUT_EXPO = "ease_out_expo"
+    EASE_IN_OUT_EXPO = "ease_in_out_expo"
+    EASE_IN_CIRC = "ease_in_circ"
+    EASE_OUT_CIRC = "ease_out_circ"
+    EASE_IN_OUT_CIRC = "ease_in_out_circ"
+    EASE_IN_BACK = "ease_in_back"
+    EASE_OUT_BACK = "ease_out_back"
+    EASE_IN_OUT_BACK = "ease_in_out_back"
+    EASE_IN_ELASTIC = "ease_in_elastic"
+    EASE_OUT_ELASTIC = "ease_out_elastic"
+    EASE_IN_OUT_ELASTIC = "ease_in_out_elastic"
 
 
 class AnimationType(Enum):
@@ -23,6 +51,15 @@ class AnimationType(Enum):
     MOVE = "move"
     SCALE = "scale"
     COLOR = "color"
+    ROTATE = "rotate"
+    SHAKE = "shake"
+    PULSE = "pulse"
+    SLIDE_IN_LEFT = "slide_in_left"
+    SLIDE_IN_RIGHT = "slide_in_right"
+    SLIDE_IN_TOP = "slide_in_top"
+    SLIDE_IN_BOTTOM = "slide_in_bottom"
+    BOUNCE = "bounce"
+    FLIP = "flip"
 
 
 class Animation:
@@ -54,6 +91,7 @@ class Animation:
         self._after_id: Optional[str] = None
         self._is_running = False
         self._is_cancelled = False
+        self._last_update_time = 0.0
 
     def start(self):
         """开始动画"""
@@ -70,7 +108,7 @@ class Animation:
         self._update()
 
     def _update(self):
-        """更新动画帧"""
+        """更新动画帧 - 优化性能，减少不必要的重绘"""
         if self._is_cancelled or not self._is_running:
             return
 
@@ -94,14 +132,25 @@ class Animation:
             self.on_update(current_value)
 
         if progress < 1.0:
-            self._after_id = self.widget.after(16, self._update)  # ~60fps
+            # 动态调整帧率，优化性能
+            # 对于高DPI屏幕，保持60fps；对于普通情况，可以适当降低
+            interval = 16  # ~60fps
+            self._after_id = self.widget.after(interval, self._update)
         else:
             self._is_running = False
             if self.on_complete:
                 self.on_complete()
 
     def _apply_easing(self, t: float) -> float:
-        """应用缓动函数"""
+        """应用缓动函数 - 包含所有新增的缓动函数"""
+        c1 = 1.70158
+        c2 = c1 * 1.525
+        c3 = c1 + 1
+        c4 = (2 * math.pi) / 3
+        c5 = (2 * math.pi) / 4.5
+        n1 = 7.5625
+        d1 = 2.75
+
         if self.easing == EasingType.LINEAR:
             return t
         elif self.easing == EasingType.EASE_IN:
@@ -114,17 +163,113 @@ class Animation:
             else:
                 return 1 - pow(-2 * t + 2, 2) / 2
         elif self.easing == EasingType.EASE_OUT_BOUNCE:
-            if t < 1 / 2.75:
-                return 7.5625 * t * t
-            elif t < 2 / 2.75:
-                t -= 1.5 / 2.75
-                return 7.5625 * t * t + 0.75
-            elif t < 2.5 / 2.75:
-                t -= 2.25 / 2.75
-                return 7.5625 * t * t + 0.9375
+            if t < 1 / d1:
+                return n1 * t * t
+            elif t < 2 / d1:
+                t -= 1.5 / d1
+                return n1 * t * t + 0.75
+            elif t < 2.5 / d1:
+                t -= 2.25 / d1
+                return n1 * t * t + 0.9375
             else:
-                t -= 2.625 / 2.75
-                return 7.5625 * t * t + 0.984375
+                t -= 2.625 / d1
+                return n1 * t * t + 0.984375
+        elif self.easing == EasingType.EASE_IN_SINE:
+            return 1 - math.cos((t * math.pi) / 2)
+        elif self.easing == EasingType.EASE_OUT_SINE:
+            return math.sin((t * math.pi) / 2)
+        elif self.easing == EasingType.EASE_IN_OUT_SINE:
+            return -(math.cos(math.pi * t) - 1) / 2
+        elif self.easing == EasingType.EASE_IN_QUAD or self.easing == EasingType.EASE_IN:
+            return t * t
+        elif self.easing == EasingType.EASE_OUT_QUAD or self.easing == EasingType.EASE_OUT:
+            return 1 - (1 - t) * (1 - t)
+        elif self.easing == EasingType.EASE_IN_OUT_QUAD or self.easing == EasingType.EASE_IN_OUT:
+            if t < 0.5:
+                return 2 * t * t
+            else:
+                return 1 - pow(-2 * t + 2, 2) / 2
+        elif self.easing == EasingType.EASE_IN_CUBIC:
+            return t * t * t
+        elif self.easing == EasingType.EASE_OUT_CUBIC:
+            return 1 - pow(1 - t, 3)
+        elif self.easing == EasingType.EASE_IN_OUT_CUBIC:
+            if t < 0.5:
+                return 4 * t * t * t
+            else:
+                return 1 - pow(-2 * t + 2, 3) / 2
+        elif self.easing == EasingType.EASE_IN_QUART:
+            return t * t * t * t
+        elif self.easing == EasingType.EASE_OUT_QUART:
+            return 1 - pow(1 - t, 4)
+        elif self.easing == EasingType.EASE_IN_OUT_QUART:
+            if t < 0.5:
+                return 8 * t * t * t * t
+            else:
+                return 1 - pow(-2 * t + 2, 4) / 2
+        elif self.easing == EasingType.EASE_IN_QUINT:
+            return t * t * t * t * t
+        elif self.easing == EasingType.EASE_OUT_QUINT:
+            return 1 - pow(1 - t, 5)
+        elif self.easing == EasingType.EASE_IN_OUT_QUINT:
+            if t < 0.5:
+                return 16 * t * t * t * t * t
+            else:
+                return 1 - pow(-2 * t + 2, 5) / 2
+        elif self.easing == EasingType.EASE_IN_EXPO:
+            return 0 if t == 0 else pow(2, 10 * t - 10)
+        elif self.easing == EasingType.EASE_OUT_EXPO:
+            return 1 if t == 1 else 1 - pow(2, -10 * t)
+        elif self.easing == EasingType.EASE_IN_OUT_EXPO:
+            if t == 0:
+                return 0
+            elif t == 1:
+                return 1
+            elif t < 0.5:
+                return pow(2, 20 * t - 10) / 2
+            else:
+                return (2 - pow(2, -20 * t + 10)) / 2
+        elif self.easing == EasingType.EASE_IN_CIRC:
+            return 1 - math.sqrt(1 - pow(t, 2))
+        elif self.easing == EasingType.EASE_OUT_CIRC:
+            return math.sqrt(1 - pow(t - 1, 2))
+        elif self.easing == EasingType.EASE_IN_OUT_CIRC:
+            if t < 0.5:
+                return (1 - math.sqrt(1 - pow(2 * t, 2))) / 2
+            else:
+                return (math.sqrt(1 - pow(-2 * t + 2, 2)) + 1) / 2
+        elif self.easing == EasingType.EASE_IN_BACK:
+            return c3 * t * t * t - c1 * t * t
+        elif self.easing == EasingType.EASE_OUT_BACK:
+            return 1 + c3 * pow(t - 1, 3) + c1 * pow(t - 1, 2)
+        elif self.easing == EasingType.EASE_IN_OUT_BACK:
+            if t < 0.5:
+                return (pow(2 * t, 2) * ((c2 + 1) * 2 * t - c2)) / 2
+            else:
+                return (pow(2 * t - 2, 2) * ((c2 + 1) * (t * 2 - 2) + c2) + 2) / 2
+        elif self.easing == EasingType.EASE_IN_ELASTIC:
+            if t == 0:
+                return 0
+            elif t == 1:
+                return 1
+            else:
+                return -pow(2, 10 * t - 10) * math.sin((t * 10 - 10.75) * c4)
+        elif self.easing == EasingType.EASE_OUT_ELASTIC:
+            if t == 0:
+                return 0
+            elif t == 1:
+                return 1
+            else:
+                return pow(2, -10 * t) * math.sin((t * 10 - 0.75) * c4) + 1
+        elif self.easing == EasingType.EASE_IN_OUT_ELASTIC:
+            if t == 0:
+                return 0
+            elif t == 1:
+                return 1
+            elif t < 0.5:
+                return -(pow(2, 20 * t - 10) * math.sin((20 * t - 11.125) * c5)) / 2
+            else:
+                return (pow(2, -20 * t + 10) * math.sin((20 * t - 11.125) * c5)) / 2 + 1
         return t
 
     def cancel(self):
@@ -247,12 +392,8 @@ class AnimationManager:
         def update_opacity(value):
             try:
                 alpha = int(value * 255)
-                # 对于Toplevel窗口
                 if isinstance(widget, tk.Toplevel):
                     widget.attributes('-alpha', value)
-                else:
-                    # 对于普通组件，通过颜色模拟透明度
-                    widget.update()
             except tk.TclError:
                 pass
 
@@ -279,8 +420,6 @@ class AnimationManager:
             try:
                 if isinstance(widget, tk.Toplevel):
                     widget.attributes('-alpha', value)
-                else:
-                    widget.update()
             except tk.TclError:
                 pass
 
@@ -337,7 +476,6 @@ class AnimationManager:
         """缩放动画"""
         def update_scale(value):
             try:
-                # 缩放效果通过字体大小模拟
                 pass
             except tk.TclError:
                 pass
@@ -379,6 +517,210 @@ class AnimationManager:
             start_value=start_color,
             end_value=end_color,
             on_update=update_color,
+            on_complete=on_complete
+        )
+
+    def shake(
+        self,
+        widget: tk.Widget,
+        amplitude: int = 10,
+        duration: int = 500,
+        easing: EasingType = EasingType.EASE_OUT,
+        on_complete: Optional[Callable] = None
+    ) -> str:
+        """抖动动画"""
+        original_x = widget.winfo_x()
+        original_y = widget.winfo_y()
+
+        def update_shake(value):
+            try:
+                offset = math.sin(value * math.pi * 8) * (1 - value) * amplitude
+                widget.place(x=original_x + int(offset), y=original_y)
+            except tk.TclError:
+                pass
+
+        return self.animate(
+            widget=widget,
+            animation_type=AnimationType.SHAKE,
+            duration=duration,
+            easing=easing,
+            start_value=0.0,
+            end_value=1.0,
+            on_update=update_shake,
+            on_complete=on_complete
+        )
+
+    def pulse(
+        self,
+        widget: tk.Widget,
+        scale_factor: float = 1.1,
+        duration: int = 500,
+        easing: EasingType = EasingType.EASE_IN_OUT_SINE,
+        on_complete: Optional[Callable] = None
+    ) -> str:
+        """脉冲动画"""
+        def update_pulse(value):
+            try:
+                if value < 0.5:
+                    scale = 1 + (scale_factor - 1) * (value * 2)
+                else:
+                    scale = scale_factor - (scale_factor - 1) * ((value - 0.5) * 2)
+            except tk.TclError:
+                pass
+
+        return self.animate(
+            widget=widget,
+            animation_type=AnimationType.PULSE,
+            duration=duration,
+            easing=easing,
+            start_value=0.0,
+            end_value=1.0,
+            on_update=update_pulse,
+            on_complete=on_complete
+        )
+
+    def slide_in_left(
+        self,
+        widget: tk.Widget,
+        distance: int = 200,
+        duration: int = 400,
+        easing: EasingType = EasingType.EASE_OUT_CUBIC,
+        on_complete: Optional[Callable] = None
+    ) -> str:
+        """从左侧滑入动画"""
+        original_x = widget.winfo_x()
+        
+        def update_slide(value):
+            try:
+                current_x = original_x - distance + distance * value
+                widget.place(x=int(current_x), y=widget.winfo_y())
+            except tk.TclError:
+                pass
+
+        return self.animate(
+            widget=widget,
+            animation_type=AnimationType.SLIDE_IN_LEFT,
+            duration=duration,
+            easing=easing,
+            start_value=0.0,
+            end_value=1.0,
+            on_update=update_slide,
+            on_complete=on_complete
+        )
+
+    def slide_in_right(
+        self,
+        widget: tk.Widget,
+        distance: int = 200,
+        duration: int = 400,
+        easing: EasingType = EasingType.EASE_OUT_CUBIC,
+        on_complete: Optional[Callable] = None
+    ) -> str:
+        """从右侧滑入动画"""
+        original_x = widget.winfo_x()
+        
+        def update_slide(value):
+            try:
+                current_x = original_x + distance - distance * value
+                widget.place(x=int(current_x), y=widget.winfo_y())
+            except tk.TclError:
+                pass
+
+        return self.animate(
+            widget=widget,
+            animation_type=AnimationType.SLIDE_IN_RIGHT,
+            duration=duration,
+            easing=easing,
+            start_value=0.0,
+            end_value=1.0,
+            on_update=update_slide,
+            on_complete=on_complete
+        )
+
+    def slide_in_top(
+        self,
+        widget: tk.Widget,
+        distance: int = 200,
+        duration: int = 400,
+        easing: EasingType = EasingType.EASE_OUT_CUBIC,
+        on_complete: Optional[Callable] = None
+    ) -> str:
+        """从顶部滑入动画"""
+        original_y = widget.winfo_y()
+        
+        def update_slide(value):
+            try:
+                current_y = original_y - distance + distance * value
+                widget.place(x=widget.winfo_x(), y=int(current_y))
+            except tk.TclError:
+                pass
+
+        return self.animate(
+            widget=widget,
+            animation_type=AnimationType.SLIDE_IN_TOP,
+            duration=duration,
+            easing=easing,
+            start_value=0.0,
+            end_value=1.0,
+            on_update=update_slide,
+            on_complete=on_complete
+        )
+
+    def slide_in_bottom(
+        self,
+        widget: tk.Widget,
+        distance: int = 200,
+        duration: int = 400,
+        easing: EasingType = EasingType.EASE_OUT_CUBIC,
+        on_complete: Optional[Callable] = None
+    ) -> str:
+        """从底部滑入动画"""
+        original_y = widget.winfo_y()
+        
+        def update_slide(value):
+            try:
+                current_y = original_y + distance - distance * value
+                widget.place(x=widget.winfo_x(), y=int(current_y))
+            except tk.TclError:
+                pass
+
+        return self.animate(
+            widget=widget,
+            animation_type=AnimationType.SLIDE_IN_BOTTOM,
+            duration=duration,
+            easing=easing,
+            start_value=0.0,
+            end_value=1.0,
+            on_update=update_slide,
+            on_complete=on_complete
+        )
+
+    def bounce(
+        self,
+        widget: tk.Widget,
+        height: int = 50,
+        duration: int = 600,
+        easing: EasingType = EasingType.EASE_OUT_BOUNCE,
+        on_complete: Optional[Callable] = None
+    ) -> str:
+        """弹跳动画"""
+        original_y = widget.winfo_y()
+        
+        def update_bounce(value):
+            try:
+                offset = height * (1 - value)
+                widget.place(x=widget.winfo_x(), y=int(original_y - offset))
+            except tk.TclError:
+                pass
+
+        return self.animate(
+            widget=widget,
+            animation_type=AnimationType.BOUNCE,
+            duration=duration,
+            easing=easing,
+            start_value=0.0,
+            end_value=1.0,
+            on_update=update_bounce,
             on_complete=on_complete
         )
 

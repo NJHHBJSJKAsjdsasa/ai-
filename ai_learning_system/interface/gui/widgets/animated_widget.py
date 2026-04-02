@@ -171,13 +171,23 @@ class AnimatedButton(tk.Button):
         self._hover_bg = hover_bg or self._lighten_color(self._original_bg)
         self._hover_fg = hover_fg or self._original_fg
         self._animation_duration = animation_duration or Theme.ANIMATION_DURATION_FAST
+        self._click_animation_duration = 100
         self._anim_id = None
+        self._click_anim_id = None
+        self._press_bg = None
+        self._press_fg = None
 
         super().__init__(parent, **kwargs)
 
-        # 绑定悬停事件
+        # 预计算按下状态颜色
+        self._press_bg = self._darken_color(self._original_bg)
+        self._press_fg = self._original_fg
+
+        # 绑定事件
         self.bind("<Enter>", self._on_enter)
         self.bind("<Leave>", self._on_leave)
+        self.bind("<ButtonPress-1>", self._on_press)
+        self.bind("<ButtonRelease-1>", self._on_release)
 
     def _lighten_color(self, color: str) -> str:
         """提亮颜色"""
@@ -191,6 +201,18 @@ class AnimatedButton(tk.Button):
         except:
             return color
 
+    def _darken_color(self, color: str) -> str:
+        """加深颜色"""
+        try:
+            r, g, b = Theme.hex_to_rgb(color)
+            factor = 0.85
+            r = int(r * factor)
+            g = int(g * factor)
+            b = int(b * factor)
+            return Theme.rgb_to_hex(r, g, b)
+        except:
+            return color
+
     def _on_enter(self, event=None):
         """鼠标进入"""
         if not Theme.is_animation_enabled():
@@ -198,7 +220,7 @@ class AnimatedButton(tk.Button):
             return
 
         self._cancel_animation()
-        self._anim_id = self._animate_to(self._hover_bg, self._hover_fg)
+        self._anim_id = self._animate_to(self._hover_bg, self._hover_fg, easing=EasingType.EASE_OUT_CUBIC)
 
     def _on_leave(self, event=None):
         """鼠标离开"""
@@ -207,10 +229,51 @@ class AnimatedButton(tk.Button):
             return
 
         self._cancel_animation()
-        self._anim_id = self._animate_to(self._original_bg, self._original_fg)
+        self._anim_id = self._animate_to(self._original_bg, self._original_fg, easing=EasingType.EASE_OUT_QUAD)
 
-    def _animate_to(self, target_bg: str, target_fg: str) -> str:
+    def _on_press(self, event=None):
+        """鼠标按下"""
+        if not Theme.is_animation_enabled():
+            self.config(bg=self._press_bg, fg=self._press_fg)
+            return
+
+        self._cancel_animation()
+        self._cancel_click_animation()
+        self._click_anim_id = self._animate_to(self._press_bg, self._press_fg, 
+                                               duration=self._click_animation_duration, 
+                                               easing=EasingType.EASE_IN_CUBIC)
+
+    def _on_release(self, event=None):
+        """鼠标释放"""
+        if not Theme.is_animation_enabled():
+            self.config(bg=self._hover_bg, fg=self._hover_fg)
+            return
+
+        self._cancel_click_animation()
+        current_bg = self.cget("bg")
+        # 检查鼠标是否还在按钮上
+        try:
+            x = self.winfo_pointerx() - self.winfo_rootx()
+            y = self.winfo_pointery() - self.winfo_rooty()
+            if 0 <= x < self.winfo_width() and 0 <= y < self.winfo_height():
+                target_bg, target_fg = self._hover_bg, self._hover_fg
+            else:
+                target_bg, target_fg = self._original_bg, self._original_fg
+        except:
+            target_bg, target_fg = self._hover_bg, self._hover_fg
+
+        self._anim_id = self._animate_to(target_bg, target_fg, 
+                                         duration=self._click_animation_duration, 
+                                         easing=EasingType.EASE_OUT_BACK)
+
+    def _animate_to(self, target_bg: str, target_fg: str, 
+                   duration: int = None, easing: EasingType = None) -> str:
         """动画过渡到目标颜色"""
+        if duration is None:
+            duration = self._animation_duration
+        if easing is None:
+            easing = EasingType.EASE_OUT_CUBIC
+
         current_bg = self.cget("bg")
         current_fg = self.cget("fg")
 
@@ -241,8 +304,8 @@ class AnimatedButton(tk.Button):
         return animation_manager.animate(
             self,
             None,
-            duration=self._animation_duration,
-            easing=EasingType.EASE_OUT,
+            duration=duration,
+            easing=easing,
             start_value=0.0,
             end_value=1.0,
             on_update=update_colors
@@ -253,6 +316,12 @@ class AnimatedButton(tk.Button):
         if self._anim_id:
             animation_manager.cancel(self._anim_id)
             self._anim_id = None
+
+    def _cancel_click_animation(self):
+        """取消点击动画"""
+        if self._click_anim_id:
+            animation_manager.cancel(self._click_anim_id)
+            self._click_anim_id = None
 
 
 class AnimatedProgressBar(tk.Canvas):
@@ -274,6 +343,10 @@ class AnimatedProgressBar(tk.Canvas):
         self._current_progress = 0.0
         self._target_progress = 0.0
         self._anim_id = None
+        self._use_gradient = True
+        self._gradient_start = None
+        self._gradient_end = None
+        self._init_gradient_colors()
 
         super().__init__(
             parent,
@@ -285,6 +358,42 @@ class AnimatedProgressBar(tk.Canvas):
 
         # 等待组件渲染完成
         self.after(100, self._draw_initial)
+
+    def _init_gradient_colors(self):
+        """初始化渐变颜色"""
+        color_map = {
+            Theme.ACCENT_GOLD: (Theme.GRADIENT_GOLD_START, Theme.GRADIENT_GOLD_END),
+            Theme.ACCENT_CYAN: (Theme.GRADIENT_CYAN_START, Theme.GRADIENT_CYAN_END),
+            Theme.ACCENT_RED: (Theme.GRADIENT_RED_START, Theme.GRADIENT_RED_END),
+            Theme.ACCENT_GREEN: (Theme.GRADIENT_GREEN_START, Theme.GRADIENT_GREEN_END),
+            Theme.ACCENT_PURPLE: (Theme.GRADIENT_PURPLE_START, Theme.GRADIENT_PURPLE_END),
+            Theme.ACCENT_BLUE: (Theme.GRADIENT_BLUE_START, Theme.GRADIENT_BLUE_END),
+        }
+        
+        if self._fill_color in color_map:
+            self._gradient_start, self._gradient_end = color_map[self._fill_color]
+        else:
+            self._gradient_start = self._fill_color
+            self._gradient_end = Theme._darken_color(self._fill_color, 0.7)
+
+    def _draw_gradient_rectangle(self, x1: int, y1: int, x2: int, y2: int, start_color: str, end_color: str):
+        """绘制渐变矩形"""
+        width = x2 - x1
+        height = y2 - y1
+        
+        if width <= 0 or height <= 0:
+            return
+        
+        start_rgb = Theme.hex_to_rgb(start_color)
+        end_rgb = Theme.hex_to_rgb(end_color)
+        
+        for i in range(width):
+            factor = i / max(width - 1, 1)
+            r = int(start_rgb[0] + (end_rgb[0] - start_rgb[0]) * factor)
+            g = int(start_rgb[1] + (end_rgb[1] - start_rgb[1]) * factor)
+            b = int(start_rgb[2] + (end_rgb[2] - start_rgb[2]) * factor)
+            color = Theme.rgb_to_hex(r, g, b)
+            self.create_line(x1 + i, y1, x1 + i, y2, fill=color)
 
     def _draw_initial(self):
         """绘制初始状态"""
@@ -305,7 +414,10 @@ class AnimatedProgressBar(tk.Canvas):
         # 进度
         if progress > 0:
             fill_width = int(width * progress)
-            self.create_rectangle(0, 0, fill_width, height, fill=self._fill_color, outline="")
+            if self._use_gradient and self._gradient_start and self._gradient_end:
+                self._draw_gradient_rectangle(0, 0, fill_width, height, self._gradient_start, self._gradient_end)
+            else:
+                self.create_rectangle(0, 0, fill_width, height, fill=self._fill_color, outline="")
 
     def set_progress(
         self,
@@ -345,7 +457,7 @@ class AnimatedProgressBar(tk.Canvas):
             self,
             None,
             duration=self._animation_duration,
-            easing=EasingType.EASE_OUT,
+            easing=EasingType.EASE_OUT_CUBIC,
             start_value=start_progress,
             end_value=target,
             on_update=update_progress
@@ -354,6 +466,7 @@ class AnimatedProgressBar(tk.Canvas):
     def set_color(self, fill_color: str):
         """设置进度条颜色"""
         self._fill_color = fill_color
+        self._init_gradient_colors()
         self._draw_progress(self._current_progress)
 
 
@@ -374,6 +487,7 @@ class AnimatedCard(tk.Frame):
         self._animation_duration = animation_duration or Theme.ANIMATION_DURATION
         self._hover_scale = Theme.HOVER_SCALE
         self._is_hovered = False
+        self._anim_id = None
 
         super().__init__(parent, bg=self._bg_color, **kwargs)
 
@@ -391,7 +505,7 @@ class AnimatedCard(tk.Frame):
             if Theme.is_animation_enabled():
                 self._animate_highlight(True)
             else:
-                self.config(bg=self._lighten_color(self._bg_color))
+                self.config(bg=self._lighten_color(self._bg_color, 1.25))
 
     def _on_leave(self, event=None):
         """鼠标离开"""
@@ -402,9 +516,17 @@ class AnimatedCard(tk.Frame):
             else:
                 self.config(bg=self._bg_color)
 
+    def _cancel_animation(self):
+        """取消当前动画"""
+        if self._anim_id:
+            animation_manager.cancel(self._anim_id)
+            self._anim_id = None
+
     def _animate_highlight(self, highlight: bool):
         """高亮动画"""
-        target_color = self._lighten_color(self._bg_color) if highlight else self._bg_color
+        self._cancel_animation()
+        
+        target_color = self._lighten_color(self._bg_color, 1.25) if highlight else self._bg_color
         current_color = self.cget("bg")
 
         start_rgb = Theme.hex_to_rgb(current_color) if current_color.startswith("#") else Theme.hex_to_rgb(self._bg_color)
@@ -420,21 +542,23 @@ class AnimatedCard(tk.Frame):
             except tk.TclError:
                 pass
 
-        animation_manager.animate(
+        easing = EasingType.EASE_OUT_CUBIC if highlight else EasingType.EASE_OUT_QUAD
+        self._anim_id = animation_manager.animate(
             self,
             None,
             duration=self._animation_duration,
-            easing=EasingType.EASE_OUT,
+            easing=easing,
             start_value=0.0,
             end_value=1.0,
             on_update=update_color
         )
 
-    def _lighten_color(self, color: str) -> str:
+    def _lighten_color(self, color, factor=None):
         """提亮颜色"""
+        if factor is None:
+            factor = Theme.HOVER_BRIGHTNESS
         try:
             r, g, b = Theme.hex_to_rgb(color)
-            factor = Theme.HOVER_BRIGHTNESS
             r = min(255, int(r * factor))
             g = min(255, int(g * factor))
             b = min(255, int(b * factor))
