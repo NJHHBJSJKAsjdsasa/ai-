@@ -8,49 +8,53 @@ class Theme:
     """修仙风格主题配置 - 重构版"""
 
     # ========== 颜色系统 ==========
-    # 主色调 - 深色背景层次
-    BG_PRIMARY = "#0d1117"      # 最深背景 - 主窗口
-    BG_SECONDARY = "#161b22"    # 次级背景 - 面板
-    BG_TERTIARY = "#21262d"     # 三级背景 - 卡片
-    BG_ELEVATED = "#30363d"     # 提升背景 - 悬停/选中
+    # 主色调 - 深色背景层次（修仙风格）
+    BG_PRIMARY = "#0a0e14"      # 最深背景 - 主窗口（深邃夜空）
+    BG_SECONDARY = "#111827"    # 次级背景 - 面板（幽深夜色）
+    BG_TERTIARY = "#1f2937"     # 三级背景 - 卡片（暮色苍茫）
+    BG_ELEVATED = "#374151"     # 提升背景 - 悬停/选中（深夜星河）
 
     # 边框颜色
-    BORDER_LIGHT = "#30363d"
-    BORDER_DEFAULT = "#21262d"
-    BORDER_FOCUS = "#58a6ff"
+    BORDER_LIGHT = "#4b5563"
+    BORDER_DEFAULT = "#374151"
+    BORDER_FOCUS = "#ffd700"
 
-    # 强调色 - 修仙氛围
-    ACCENT_GOLD = "#ffd700"      # 金色 - 修为/重要
-    ACCENT_CYAN = "#00d9ff"      # 青色 - 灵力/信息
-    ACCENT_RED = "#f85149"       # 红色 - 生命/危险
-    ACCENT_GREEN = "#3fb950"     # 绿色 - 成功/恢复
-    ACCENT_PURPLE = "#a371f7"    # 紫色 - 特殊/神秘
-    ACCENT_PINK = "#ff69b4"      # 粉红 - 社交/情感
-    ACCENT_ORANGE = "#f0883e"    # 橙色 - 警告/注意
-    ACCENT_BLUE = "#58a6ff"      # 蓝色 - 通用/链接
+    # 强调色 - 修仙氛围（优化版）
+    ACCENT_GOLD = "#ffd700"      # 金色 - 修为/重要（帝皇金）
+    ACCENT_CYAN = "#00ffff"      # 青色 - 灵力/信息（灵水灵韵）
+    ACCENT_RED = "#ff4444"       # 红色 - 生命/危险（血魄赤焰）
+    ACCENT_GREEN = "#00ff88"     # 绿色 - 成功/恢复（青木生机）
+    ACCENT_PURPLE = "#9d4edd"    # 紫色 - 特殊/神秘（紫霞仙境）
+    ACCENT_PINK = "#ff6bd6"      # 粉红 - 社交/情感（桃花嫣然）
+    ACCENT_ORANGE = "#ff9500"    # 橙色 - 警告/注意（丹火赤焰）
+    ACCENT_BLUE = "#00aaff"      # 蓝色 - 通用/链接（碧霄天光）
 
-    # 文字颜色
-    TEXT_PRIMARY = "#f0f6fc"     # 主文字 - 高对比
-    TEXT_SECONDARY = "#c9d1d9"   # 次级文字
-    TEXT_TERTIARY = "#8b949e"    # 三级文字
-    TEXT_DIM = "#6e7681"         # 暗淡文字
-    TEXT_DISABLED = "#484f58"    # 禁用文字
+    # 文字颜色（增强对比度）
+    TEXT_PRIMARY = "#ffffff"     # 主文字 - 高对比（纯白）
+    TEXT_SECONDARY = "#d1d5db"   # 次级文字（银辉）
+    TEXT_TERTIARY = "#9ca3af"    # 三级文字（灰银）
+    TEXT_DIM = "#6b7280"         # 暗淡文字（深灰）
+    TEXT_DISABLED = "#4b5563"    # 禁用文字（墨灰）
 
     # 状态颜色
-    SUCCESS = "#3fb950"
-    WARNING = "#f0883e"
-    ERROR = "#f85149"
-    INFO = "#58a6ff"
+    SUCCESS = "#00ff88"
+    WARNING = "#ff9500"
+    ERROR = "#ff4444"
+    INFO = "#00aaff"
 
-    # 渐变颜色（用于进度条等）
+    # 渐变颜色（用于进度条等）- 修仙主题
     GRADIENT_GOLD_START = "#ffd700"
-    GRADIENT_GOLD_END = "#ffaa00"
-    GRADIENT_CYAN_START = "#00d9ff"
-    GRADIENT_CYAN_END = "#00a8cc"
-    GRADIENT_RED_START = "#f85149"
-    GRADIENT_RED_END = "#da3633"
-    GRADIENT_GREEN_START = "#3fb950"
-    GRADIENT_GREEN_END = "#2ea043"
+    GRADIENT_GOLD_END = "#ff8c00"
+    GRADIENT_CYAN_START = "#00ffff"
+    GRADIENT_CYAN_END = "#0099cc"
+    GRADIENT_RED_START = "#ff4444"
+    GRADIENT_RED_END = "#cc0000"
+    GRADIENT_GREEN_START = "#00ff88"
+    GRADIENT_GREEN_END = "#00aa55"
+    GRADIENT_PURPLE_START = "#9d4edd"
+    GRADIENT_PURPLE_END = "#5a189a"
+    GRADIENT_BLUE_START = "#00aaff"
+    GRADIENT_BLUE_END = "#0066cc"
 
     # ========== 字体系统 ==========
     FONT_FAMILY = "Microsoft YaHei UI"
@@ -132,15 +136,18 @@ class Theme:
         'text_secondary': TEXT_SECONDARY,
         'text_tertiary': TEXT_TERTIARY,
         'text_dim': TEXT_DIM,
+        'text_disabled': TEXT_DISABLED,
         'accent_gold': ACCENT_GOLD,
         'accent_cyan': ACCENT_CYAN,
         'accent_red': ACCENT_RED,
         'accent_green': ACCENT_GREEN,
         'accent_purple': ACCENT_PURPLE,
+        'accent_pink': ACCENT_PINK,
         'accent_orange': ACCENT_ORANGE,
         'accent_blue': ACCENT_BLUE,
         'border_light': BORDER_LIGHT,
         'border_default': BORDER_DEFAULT,
+        'border_focus': BORDER_FOCUS,
         'success': SUCCESS,
         'warning': WARNING,
         'error': ERROR,
@@ -229,6 +236,16 @@ class Theme:
                 "padx": cls.SPACING_MD,
                 "pady": cls.SPACING_SM,
             },
+            "nav": {
+                **base_style,
+                "bg": cls.BG_SECONDARY,
+                "fg": cls.TEXT_SECONDARY,
+                "activebackground": cls.BG_TERTIARY,
+                "activeforeground": cls.ACCENT_CYAN,
+                "padx": cls.SPACING_MD,
+                "pady": cls.SPACING_MD,
+                "anchor": "w",
+            },
             "nav_active": {
                 **base_style,
                 "bg": cls.BG_TERTIARY,
@@ -236,7 +253,17 @@ class Theme:
                 "activebackground": cls.BG_ELEVATED,
                 "activeforeground": cls.ACCENT_GOLD,
                 "padx": cls.SPACING_MD,
-                "pady": cls.SPACING_SM,
+                "pady": cls.SPACING_MD,
+                "anchor": "w",
+                "highlightbackground": cls.ACCENT_GOLD,
+                "highlightthickness": 1,
+            },
+            "nav_group": {
+                **base_style,
+                "bg": cls.BG_SECONDARY,
+                "fg": cls.TEXT_DIM,
+                "font": cls.get_font(cls.FONT_SIZE_SM, bold=True),
+                "anchor": "w",
             },
         }
         return styles.get(button_type, styles["primary"])

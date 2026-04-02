@@ -165,9 +165,13 @@ class MainWindow:
 
     def _setup_navigation(self):
         """设置导航按钮"""
-        # 标题区域
+        # 标题区域 - 增强视觉效果
         title_frame = tk.Frame(self.nav_frame, bg=Theme.BG_SECONDARY)
         title_frame.pack(fill=tk.X, pady=Theme.SPACING_LG, padx=Theme.SPACING_MD)
+
+        # 标题背景装饰
+        title_decor = tk.Frame(title_frame, bg=Theme.ACCENT_GOLD, height=2)
+        title_decor.pack(fill=tk.X, pady=(0, Theme.SPACING_SM))
 
         title_label = tk.Label(
             title_frame,
@@ -182,33 +186,56 @@ class MainWindow:
         separator = tk.Frame(self.nav_frame, bg=Theme.BORDER_DEFAULT, height=1)
         separator.pack(fill=tk.X, padx=Theme.SPACING_MD, pady=Theme.SPACING_SM)
 
-        # 导航按钮配置
-        nav_items = [
-            ("status", "📊", "状态", self._on_status_click),
-            ("map", "🗺️", "地图", self._on_map_click),
-            ("story", "📖", "剧情", self._on_story_click),
-            ("npc", "👥", "NPC", self._on_npc_click),
-            ("social", "💕", "社交", self._on_social_click),
-            ("inventory", "🎒", "背包", self._on_inventory_click),
-            ("shop", "🏪", "商店", self._on_shop_click),
-            ("technique", "📜", "功法", self._on_technique_click),
-            ("sect", "🏛️", "门派", self._on_sect_click),
-            ("combat", "⚔️", "战斗", self._on_combat_click),
-            ("exploration", "🔍", "探索", self._on_exploration_click),
-            ("alchemy", "⚗️", "炼丹", self._on_alchemy_click),
-            ("pet", "🐾", "灵兽", self._on_pet_click),
-            ("cave", "🏔️", "洞府", self._on_cave_click),
-            ("quest", "📜", "任务", self._on_quest_click),
-            ("tribulation", "⚡", "天劫", self._on_tribulation_click),
-            ("achievement", "🏆", "成就", self._on_achievement_click),
-            ("world", "🌍", "世界", self._on_world_click),
+        # 导航按钮分组配置 - 增强视觉层次
+        nav_groups = [
+            ("基础", [
+                ("status", "📊", "状态", self._on_status_click),
+                ("map", "🗺️", "地图", self._on_map_click),
+                ("story", "📖", "剧情", self._on_story_click),
+            ]),
+            ("交互", [
+                ("npc", "👥", "NPC", self._on_npc_click),
+                ("social", "💕", "社交", self._on_social_click),
+                ("inventory", "🎒", "背包", self._on_inventory_click),
+                ("shop", "🏪", "商店", self._on_shop_click),
+            ]),
+            ("修炼", [
+                ("technique", "📜", "功法", self._on_technique_click),
+                ("sect", "🏛️", "门派", self._on_sect_click),
+                ("combat", "⚔️", "战斗", self._on_combat_click),
+                ("tribulation", "⚡", "天劫", self._on_tribulation_click),
+            ]),
+            ("探索", [
+                ("exploration", "🔍", "探索", self._on_exploration_click),
+                ("alchemy", "⚗️", "炼丹", self._on_alchemy_click),
+                ("pet", "🐾", "灵兽", self._on_pet_click),
+                ("cave", "🏔️", "洞府", self._on_cave_click),
+                ("quest", "📜", "任务", self._on_quest_click),
+            ]),
+            ("系统", [
+                ("achievement", "🏆", "成就", self._on_achievement_click),
+                ("world", "🌍", "世界", self._on_world_click),
+            ])
         ]
 
         self.nav_buttons = {}
-        for nav_id, icon, text, command in nav_items:
-            btn = self._create_nav_button(self.nav_frame, icon, text, command, nav_id)
-            btn.pack(fill=tk.X, padx=Theme.SPACING_MD, pady=Theme.SPACING_XS)
-            self.nav_buttons[nav_id] = btn
+        for group_name, items in nav_groups:
+            # 分组标签
+            group_frame = tk.Frame(self.nav_frame, bg=Theme.BG_SECONDARY)
+            group_frame.pack(fill=tk.X, padx=Theme.SPACING_MD, pady=(Theme.SPACING_MD, Theme.SPACING_XS))
+            
+            group_label = tk.Label(
+                group_frame,
+                text=f"— {group_name} —",
+                **Theme.get_button_style("nav_group")
+            )
+            group_label.pack(fill=tk.X, anchor="w")
+            
+            # 分组内按钮
+            for nav_id, icon, text, command in items:
+                btn = self._create_nav_button(self.nav_frame, icon, text, command, nav_id)
+                btn.pack(fill=tk.X, padx=Theme.SPACING_MD, pady=Theme.SPACING_XS)
+                self.nav_buttons[nav_id] = btn
 
         # 底部区域
         bottom_frame = tk.Frame(self.nav_frame, bg=Theme.BG_SECONDARY)

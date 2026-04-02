@@ -1,13 +1,27 @@
 """
-面板基类 - 重构版
+面板基类 - 重构版（优化动画）
 """
 import tkinter as tk
+from enum import Enum
+from typing import Optional, Callable
 from ..theme import Theme
 from ..animation_manager import animation_manager, EasingType
 
 
+class PanelAnimationType(Enum):
+    """面板动画类型"""
+    FADE = "fade"
+    SLIDE_LEFT = "slide_left"
+    SLIDE_RIGHT = "slide_right"
+    SLIDE_UP = "slide_up"
+    SLIDE_DOWN = "slide_down"
+    SLIDE_AND_FADE = "slide_and_fade"
+    SCALE = "scale"
+    NONE = "none"
+
+
 class BasePanel(tk.Frame):
-    """面板基类 - 支持动画效果和统一样式"""
+    """面板基类 - 支持多种动画效果和统一样式"""
 
     def __init__(self, parent, main_window, **kwargs):
         super().__init__(parent, **kwargs)
@@ -19,6 +33,14 @@ class BasePanel(tk.Frame):
         self._is_visible = False
         self._fade_anim_id = None
         self._slide_anim_id = None
+        self._scale_anim_id = None
+        self._current_animation_id = None
+        
+        # 动画配置（保持向后兼容）
+        self._animation_type = PanelAnimationType.FADE
+        self._animation_easing = EasingType.EASE_OUT_CUBIC
+        self._animation_duration = Theme.ANIMATION_DURATION
+        self._slide_distance = 100
 
         # 设置UI
         self._setup_ui()
@@ -40,75 +62,185 @@ class BasePanel(tk.Frame):
         self._is_visible = False
         self._cancel_animations()
 
-    def _animate_show(self):
-        """显示动画"""
-        self._fade_in()
-        self.refresh()
+    def set_animation_type(self, animation_type: PanelAnimationType):
+        """设置面板切换动画类型
+        
+        Args:
+            animation_type: 动画类型枚举
+        """
+        self._animation_type = animation_type
 
-    def _fade_in(self, duration: int = None, on_complete=None):
-        """淡入动画"""
+    def set_animation_easing(self, easing: EasingType):
+        """设置动画缓动函数
+        
+        Args:
+            easing: 缓动函数类型
+        """
+        self._animation_easing = easing
+
+    def set_animation_duration(self, duration: int):
+        """设置动画持续时间（毫秒）
+        
+        Args:
+            duration: 动画持续时间
+        """
+        self._animation_duration = duration
+
+    def set_slide_distance(self, distance: int):
+        """设置滑动动画的距离（像素）
+        
+        Args:
+            distance: 滑动距离
+        """
+        self._slide_distance = distance
+
+    def _animate_show(self):
+        """显示动画 - 根据配置的动画类型执行"""
+        self.refresh()
+        
+        if not Theme.is_animation_enabled():
+            return
+            
+        self._cancel_animations()
+        
+        if self._animation_type == PanelAnimationType.FADE:
+            self._fade_in_advanced()
+        elif self._animation_type == PanelAnimationType.SLIDE_LEFT:
+            self._slide_in_advanced("left")
+        elif self._animation_type == PanelAnimationType.SLIDE_RIGHT:
+            self._slide_in_advanced("right")
+        elif self._animation_type == PanelAnimationType.SLIDE_UP:
+            self._slide_in_advanced("up")
+        elif self._animation_type == PanelAnimationType.SLIDE_DOWN:
+            self._slide_in_advanced("down")
+        elif self._animation_type == PanelAnimationType.SLIDE_AND_FADE:
+            self._slide_and_fade_in()
+        elif self._animation_type == PanelAnimationType.SCALE:
+            self._scale_in()
+
+    def _fade_in_advanced(self, duration: int = None, easing: EasingType = None, on_complete=None):
+        """优化的淡入动画
+        
+        Args:
+            duration: 动画持续时间
+            easing: 缓动函数
+            on_complete: 完成回调
+        """
         if not Theme.is_animation_enabled():
             if on_complete:
                 on_complete()
             return
 
         if duration is None:
-            duration = Theme.ANIMATION_DURATION_FAST
+            duration = self._animation_duration
+        if easing is None:
+            easing = self._animation_easing
 
         self._cancel_animations()
         self._fade_anim_id = animation_manager.fade_in(
-            self, duration=duration, on_complete=on_complete
+            self, duration=duration, easing=easing, on_complete=on_complete
         )
 
-    def _fade_out(self, duration: int = None, on_complete=None):
-        """淡出动画"""
+    def _fade_out_advanced(self, duration: int = None, easing: EasingType = None, on_complete=None):
+        """优化的淡出动画
+        
+        Args:
+            duration: 动画持续时间
+            easing: 缓动函数
+            on_complete: 完成回调
+        """
         if not Theme.is_animation_enabled():
             if on_complete:
                 on_complete()
             return
 
         if duration is None:
-            duration = Theme.ANIMATION_DURATION_FAST
+            duration = self._animation_duration
+        if easing is None:
+            easing = EasingType.EASE_IN_CUBIC
 
         self._cancel_animations()
         self._fade_anim_id = animation_manager.fade_out(
-            self, duration=duration, on_complete=on_complete
+            self, duration=duration, easing=easing, on_complete=on_complete
         )
 
-    def _slide_in(self, direction: str = "right", duration: int = None):
-        """滑入动画
-
+    def _slide_in_advanced(self, direction: str = "right", duration: int = None, easing: EasingType = None):
+        """优化的滑入动画
+        
         Args:
             direction: 滑动方向 ("left", "right", "up", "down")
+            duration: 动画持续时间
+            easing: 缓动函数
         """
         if not Theme.is_animation_enabled():
             return
 
         if duration is None:
-            duration = Theme.ANIMATION_DURATION
+            duration = self._animation_duration
+        if easing is None:
+            easing = self._animation_easing
 
         self._cancel_animations()
 
-        # 获取当前位置
-        parent_width = self.master.winfo_width()
-        parent_height = self.master.winfo_height()
-
         # 根据方向设置起始位置
+        distance = self._slide_distance
         if direction == "right":
-            start_x, start_y = parent_width, 0
+            start_x, start_y = distance, 0
         elif direction == "left":
-            start_x, start_y = -parent_width, 0
+            start_x, start_y = -distance, 0
         elif direction == "down":
-            start_x, start_y = 0, parent_height
+            start_x, start_y = 0, distance
         else:  # up
-            start_x, start_y = 0, -parent_height
+            start_x, start_y = 0, -distance
 
         end_x, end_y = 0, 0
 
         self._slide_anim_id = animation_manager.move(
             self, start_x, start_y, end_x, end_y,
-            duration=duration, easing=EasingType.EASE_OUT
+            duration=duration, easing=easing
         )
+
+    def _slide_and_fade_in(self):
+        """滑动+淡入组合动画"""
+        if not Theme.is_animation_enabled():
+            return
+            
+        self._cancel_animations()
+        
+        # 同时执行滑动和淡入
+        self._slide_in_advanced("right")
+        self._fade_in_advanced()
+
+    def _scale_in(self):
+        """缩放动画"""
+        if not Theme.is_animation_enabled():
+            return
+            
+        self._cancel_animations()
+        # 注意：缩放动画在 Tkinter 中需要额外实现，这里我们使用淡入作为替代
+        self._fade_in_advanced(easing=EasingType.EASE_OUT_BACK)
+
+    def _fade_in(self, duration: int = None, on_complete=None):
+        """淡入动画（保持向后兼容）"""
+        if duration is None:
+            duration = Theme.ANIMATION_DURATION_FAST
+        self._fade_in_advanced(duration=duration, easing=EasingType.EASE_OUT, on_complete=on_complete)
+
+    def _fade_out(self, duration: int = None, on_complete=None):
+        """淡出动画（保持向后兼容）"""
+        if duration is None:
+            duration = Theme.ANIMATION_DURATION_FAST
+        self._fade_out_advanced(duration=duration, easing=EasingType.EASE_IN, on_complete=on_complete)
+
+    def _slide_in(self, direction: str = "right", duration: int = None):
+        """滑入动画（保持向后兼容）
+        
+        Args:
+            direction: 滑动方向 ("left", "right", "up", "down")
+        """
+        if duration is None:
+            duration = Theme.ANIMATION_DURATION
+        self._slide_in_advanced(direction=direction, duration=duration, easing=EasingType.EASE_OUT)
 
     def _cancel_animations(self):
         """取消所有动画"""
@@ -118,17 +250,25 @@ class BasePanel(tk.Frame):
         if self._slide_anim_id:
             animation_manager.cancel(self._slide_anim_id)
             self._slide_anim_id = None
+        if self._scale_anim_id:
+            animation_manager.cancel(self._scale_anim_id)
+            self._scale_anim_id = None
+        if self._current_animation_id:
+            animation_manager.cancel(self._current_animation_id)
+            self._current_animation_id = None
 
     def refresh(self):
         """刷新面板数据 - 子类重写"""
         pass
 
     def refresh_animated(self):
-        """带动画的刷新"""
+        """带动画的刷新（优化版）"""
         if Theme.is_animation_enabled():
-            self._fade_out(
-                duration=Theme.ANIMATION_DURATION_FAST // 2,
-                on_complete=lambda: [self.refresh(), self._fade_in(Theme.ANIMATION_DURATION_FAST // 2)]
+            half_duration = self._animation_duration // 2
+            self._fade_out_advanced(
+                duration=half_duration,
+                easing=EasingType.EASE_IN_QUAD,
+                on_complete=lambda: [self.refresh(), self._fade_in_advanced(half_duration, EasingType.EASE_OUT_QUAD)]
             )
         else:
             self.refresh()
