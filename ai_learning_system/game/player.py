@@ -226,24 +226,38 @@ class Player:
     def _calculate_technique_cultivation_bonus(self) -> float:
         """计算功法修炼速度加成"""
         bonus = 0.0
+        # 单个功法加成
         for technique_name in self.techniques.learned_techniques.keys():
             from config import get_technique
             technique = get_technique(technique_name)
             if technique:
                 level = self.techniques.get_technique_level(technique_name)
                 bonus += technique.cultivation_speed_bonus * (1 + (level - 1) * 0.1)
+        
+        # 组合效果加成
+        from config import get_technique_combos, calculate_combo_bonuses
+        active_combos = get_technique_combos(list(self.techniques.learned_techniques.keys()))
+        combo_bonuses = calculate_combo_bonuses(active_combos)
+        bonus += combo_bonuses.get('cultivation_speed_bonus', 0.0)
+        
         return bonus
     
     def get_combat_power_bonus(self) -> float:
         """获取战斗力加成"""
         bonus = 0.0
-        # 功法加成
+        # 单个功法加成
         for technique_name in self.techniques.learned_techniques.keys():
             from config import get_technique
             technique = get_technique(technique_name)
             if technique:
                 level = self.techniques.get_technique_level(technique_name)
                 bonus += technique.combat_power_bonus * (1 + (level - 1) * 0.1)
+
+        # 组合效果加成
+        from config import get_technique_combos, calculate_combo_bonuses
+        active_combos = get_technique_combos(list(self.techniques.learned_techniques.keys()))
+        combo_bonuses = calculate_combo_bonuses(active_combos)
+        bonus += combo_bonuses.get('combat_power_bonus', 0.0)
 
         # 社交加成
         social_bonus = self._calculate_social_combat_bonus()
