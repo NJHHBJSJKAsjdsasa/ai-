@@ -223,12 +223,23 @@ class InventoryPanel(BasePanel):
     def _get_items(self):
         """获取物品列表 - 使用真实数据"""
         inventory = self._get_inventory()
-        if inventory:
-            # inventory.items 是字典，转换为列表
-            if hasattr(inventory, 'items'):
-                if isinstance(inventory.items, dict):
-                    return list(inventory.items.values())
-                return list(inventory.items)
+        if inventory and hasattr(inventory, 'items'):
+            if isinstance(inventory.items, dict):
+                # inventory.items 的格式是 {item_name: {"count": int, "data": Dict}}
+                items_list = []
+                for item_name, item_info in inventory.items.items():
+                    # 创建一个包含所有必要属性的对象
+                    item_data = item_info.get('data', {})
+                    # 构造一个简单的对象包装器
+                    item_obj = type('ItemWrapper', (), {})()
+                    item_obj.name = item_name
+                    item_obj.quantity = item_info.get('count', 1)
+                    item_obj.item_type = item_data.get('type', 'other')
+                    item_obj.description = item_data.get('description', '暂无描述')
+                    item_obj.rarity = item_data.get('rarity', '普通')
+                    item_obj.data = item_data
+                    items_list.append(item_obj)
+                return items_list
         return []
 
     def _get_filtered_items(self):
@@ -239,11 +250,19 @@ class InventoryPanel(BasePanel):
         if category == "all":
             return items
         else:
-            # 根据物品类型筛选
+            # 根据物品类型筛选 - 支持中英文类型
             filtered = []
+            category_map = {
+                "pill": ["pill", "丹药"],
+                "material": ["material", "材料", "灵石", "消耗品"],
+                "technique": ["technique", "秘籍"],
+                "equipment": ["equipment", "法宝"],
+            }
+            target_types = category_map.get(category, [category])
+            
             for item in items:
                 item_type = getattr(item, 'item_type', 'other')
-                if item_type == category:
+                if item_type in target_types:
                     filtered.append(item)
             return filtered
 
@@ -254,6 +273,12 @@ class InventoryPanel(BasePanel):
             "material": "材料",
             "technique": "功法",
             "equipment": "装备",
+            "丹药": "丹药",
+            "材料": "材料",
+            "法宝": "装备",
+            "秘籍": "功法",
+            "灵石": "材料",
+            "消耗品": "材料",
         }
         return names.get(category, "其他")
 
@@ -265,6 +290,12 @@ class InventoryPanel(BasePanel):
             "material": "🪨",
             "technique": "📜",
             "equipment": "⚔️",
+            "丹药": "💊",
+            "材料": "🪨",
+            "法宝": "⚔️",
+            "秘籍": "📜",
+            "灵石": "💎",
+            "消耗品": "📦",
         }
         return icons.get(item_type, "📦")
 
@@ -359,16 +390,15 @@ class InventoryPanel(BasePanel):
 
         # 执行使用
         player = self.get_player()
-        inventory = self._get_inventory()
 
-        if player and inventory:
+        if player:
             try:
-                # 使用物品
-                result = inventory.use_item(name, player)
-                if result:
-                    self.log(result, "system")
+                # 使用物品 - 调用player的use_item方法
+                success, message = player.use_item(name)
+                if success:
+                    self.log(message, "system")
                 else:
-                    self.log(f"使用了 {name}", "system")
+                    self.log(message, "system")
                 self.refresh()
 
                 # 刷新状态面板
@@ -378,9 +408,9 @@ class InventoryPanel(BasePanel):
                 messagebox.showerror("错误", f"使用失败: {e}")
         else:
             # 模拟使用
-            if item_type == "pill":
+            if item_type == "pill" or item_type == "丹药":
                 self.log(f"你服用了 {name}，感觉体内灵力涌动", "system")
-            elif item_type == "equipment":
+            elif item_type == "equipment" or item_type == "法宝":
                 self.log(f"你装备了 {name}", "system")
             else:
                 self.log(f"你使用了 {name}", "system")
@@ -428,8 +458,10 @@ class InventoryPanel(BasePanel):
             inventory = self._get_inventory()
             if inventory:
                 try:
-                    inventory.remove_item(name)
-                    self.log(f"你丢弃了 {name}", "system")
+                    if inventory.remove_item(name):
+                        self.log(f"你丢弃了 {name}", "system")
+                    else:
+                        self.log(f"丢弃 {name} 失败", "system")
                     self.refresh()
                 except Exception as e:
                     messagebox.showerror("错误", f"丢弃失败: {e}")
