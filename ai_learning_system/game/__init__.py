@@ -6,10 +6,10 @@
 from .player import Player
 from .cultivation import CultivationSystem
 from .npc import NPC, NPCManager
-from .world import World, GameTime
+from .world_adapter import World, Location, GeneratedLocation
 from .events import EventSystem
 from .ai_judge import AIJudgeSystem, JudgeResult, ReplyCategory, judge_ai_reply
-from .time_system import RealTimeSystem, GameTime as RealGameTime, get_time_system
+from .time_system import RealTimeSystem, GameTime, get_time_system
 from .npc_life import NPCLifeSystem, NPCActivity, NPCGoal, ActivityType, GoalType
 from .world_evolution import WorldEvolution, WorldEvent, Faction, EventType
 from .response_filter import ResponseFilter, filter_ai_response, check_xiuxian_keywords
@@ -26,6 +26,8 @@ __all__ = [
     'NPC',
     'NPCManager',
     'World',
+    'Location',
+    'GeneratedLocation',
     'GameTime',
     'EventSystem',
     'AIJudgeSystem',
@@ -33,7 +35,6 @@ __all__ = [
     'ReplyCategory',
     'judge_ai_reply',
     'RealTimeSystem',
-    'RealGameTime',
     'get_time_system',
     'NPCLifeSystem',
     'NPCActivity',

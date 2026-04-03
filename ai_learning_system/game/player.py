@@ -21,6 +21,9 @@ from config import (
     TechniqueLearningRecord, Inventory
 )
 
+from domain.value_objects.cultivation_realm import CultivationRealm
+from domain.services.cultivation_service import CultivationService
+
 
 @dataclass
 class PlayerStats:
@@ -106,6 +109,12 @@ class Player:
         # 装备栏
         self.equipped_treasures: Dict[str, str] = {}  # 部位 -> 法宝名称
         
+        # 修炼系统
+        self.cultivation_service = CultivationService()
+        realms = self.cultivation_service.create_realm_hierarchy()
+        self.cultivation_realm = realms[0]  # 初始境界为练气期
+        self.current_exp = 0
+        
         # 如果是新玩家，随机生成资质
         if not load_from_db:
             self._init_new_player()
@@ -160,16 +169,15 @@ class Player:
     
     def get_realm_name(self) -> str:
         """获取境界名称"""
-        realm_info = get_realm_info(self.stats.realm_level)
-        return realm_info.name if realm_info else "凡人"
+        return self.cultivation_realm.name
     
     def get_realm_icon(self) -> str:
         """获取境界图标"""
-        return get_realm_icon(self.stats.realm_level)
+        return get_realm_icon(self.cultivation_realm.level)
     
     def get_title(self, for_self: bool = True) -> str:
         """获取称谓"""
-        return get_realm_title(self.stats.realm_level, for_self)
+        return get_realm_title(self.cultivation_realm.level, for_self)
     
     def get_cultivation_speed(self) -> float:
         """获取修炼速度"""
@@ -649,10 +657,7 @@ class Player:
     
     def get_exp_needed(self) -> int:
         """获取突破所需经验"""
-        realm_info = get_realm_info(self.stats.realm_level)
-        if realm_info:
-            return realm_info.exp_to_next
-        return 999999
+        return self.cultivation_realm.required_exp
     
     def get_exp_progress(self) -> Tuple[int, int, float]:
         """
@@ -661,24 +666,15 @@ class Player:
         Returns:
             (当前境界内经验, 需要经验, 进度百分比)
         """
-        realm_info = get_realm_info(self.stats.realm_level)
-        if not realm_info:
-            return (0, 1, 0.0)
-        
-        # 计算当前境界内的经验（确保不为负数）
-        exp_in_realm = max(0, self.stats.exp - realm_info.exp_required)
-        exp_needed = realm_info.exp_to_next
+        exp_in_realm = self.current_exp
+        exp_needed = self.cultivation_realm.required_exp
         progress = min(1.0, max(0.0, exp_in_realm / exp_needed))
         
         return (exp_in_realm, exp_needed, progress)
     
     def can_breakthrough(self) -> bool:
         """检查是否可以突破"""
-        realm_info = get_realm_info(self.stats.realm_level)
-        if not realm_info:
-            return False
-        
-        return self.stats.exp >= realm_info.exp_required + realm_info.exp_to_next
+        return self.cultivation_realm.can_breakthrough(self.current_exp)
     
     def add_exp(self, amount: int) -> int:
         """
@@ -690,6 +686,7 @@ class Player:
         Returns:
             实际增加的经验值
         """
+        self.current_exp += amount
         self.stats.exp += amount
         return amount
     
@@ -790,7 +787,9 @@ class Player:
         self.stats.death_count = old_death_count
         
         # 继承经验
-        self.stats.exp = inheritance.get("exp", 0)
+        inherited_exp = inheritance.get("exp", 0)
+        self.stats.exp = inherited_exp
+        self.current_exp = inherited_exp
         
         # 继承灵石
         self.stats.spirit_stones = inheritance.get("spirit_stones", 100)
@@ -798,6 +797,10 @@ class Player:
         # 福缘加成
         fortune_bonus = inheritance.get("fortune_bonus", 0)
         self.stats.fortune = min(100, 50 + fortune_bonus)
+        
+        # 重新初始化修炼系统
+        realms = self.cultivation_service.create_realm_hierarchy()
+        self.cultivation_realm = realms[0]  # 初始境界为练气期
         
         # 重新初始化
         self._init_new_player()
@@ -817,7 +820,12 @@ class Player:
                 "generated_items": self.inventory.generated_items,
                 "max_slots": self.inventory.max_slots
             },
-            "equipped": self.equipped_treasures
+            "equipped": self.equipped_treasures,
+            "cultivation": {
+                "realm_name": self.cultivation_realm.name,
+                "realm_level": self.cultivation_realm.level,
+                "current_exp": self.current_exp
+            }
         }
     
     def from_dict(self, data: Dict[str, Any]):
@@ -899,6 +907,20 @@ class Player:
         if "equipped" in data:
             self.equipped_treasures = data["equipped"]
         
+        # 加载修炼系统数据
+        if "cultivation" in data:
+            cultivation_data = data["cultivation"]
+            realm_level = cultivation_data.get("realm_level", 1)
+            self.current_exp = cultivation_data.get("current_exp", 0)
+            
+            # 重新初始化修炼系统
+            realms = self.cultivation_service.create_realm_hierarchy()
+            # 找到对应等级的境界
+            for realm in realms:
+                if realm.level == realm_level:
+                    self.cultivation_realm = realm
+                    break
+        
         # 确保属性在有效范围内
         self._sanitize_stats()
         self._update_max_stats()
@@ -914,6 +936,7 @@ class Player:
         self.stats.age = max(1, self.stats.age)
         self.stats.realm_level = max(0, min(7, self.stats.realm_level))
         self.stats.realm_layer = max(1, min(9, self.stats.realm_layer))
+        self.current_exp = max(0, self.current_exp)
     
     def add_karma(self, amount: int) -> int:
         """

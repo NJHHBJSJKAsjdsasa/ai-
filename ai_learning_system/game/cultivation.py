@@ -176,7 +176,7 @@ class CultivationSystem:
             "karma": self.player.stats.karma,
         }
         success_rate = get_breakthrough_success_rate(
-            self.player.stats.realm_level,
+            self.player.cultivation_realm.level,
             player_stats
         )
         
@@ -214,27 +214,28 @@ class CultivationSystem:
     def _breakthrough_success(self) -> Dict[str, Any]:
         """突破成功"""
         old_realm = self.player.get_realm_name()
-        old_level = self.player.stats.realm_level
+        old_level = self.player.cultivation_realm.level
         
         # 提升境界
-        self.player.stats.realm_level += 1
-        self.player.stats.realm_layer = 1
-        self.player.stats.total_breakthroughs += 1
-        
-        # 更新属性
-        self.player._update_max_stats()
-        self.player._update_lifespan()
-        
-        # 恢复状态
-        self.player.heal()
-        
-        new_realm = self.player.get_realm_name()
-        
-        # 获取突破奖励
-        realm_info = get_realm_info(self.player.stats.realm_level)
-        bonus = realm_info.breakthrough_bonus if realm_info else {}
-        
-        message = f"""
+        if self.player.cultivation_realm.next_realm:
+            self.player.cultivation_realm = self.player.cultivation_realm.next_realm
+            self.player.current_exp = 0  # 重置经验
+            self.player.stats.total_breakthroughs += 1
+            
+            # 更新属性
+            self.player._update_max_stats()
+            self.player._update_lifespan()
+            
+            # 恢复状态
+            self.player.heal()
+            
+            new_realm = self.player.get_realm_name()
+            
+            # 获取突破奖励
+            realm_info = get_realm_info(self.player.cultivation_realm.level)
+            bonus = realm_info.breakthrough_bonus if realm_info else {}
+            
+            message = f"""
 🎉 突破成功！🎉
 
 {old_realm} → {new_realm}
@@ -247,21 +248,27 @@ class CultivationSystem:
 - 气血上限提升至 {self.player.stats.max_health}
 - 灵力上限提升至 {self.player.stats.max_spiritual_power}
 """
-        
-        if "spiritual_power" in bonus:
-            message += f"- 获得 {bonus['spiritual_power']} 灵力\n"
-        
-        return {
-            "result": BreakthroughResult.SUCCESS,
-            "old_realm": old_realm,
-            "new_realm": new_realm,
-            "message": message,
-        }
+            
+            if "spiritual_power" in bonus:
+                message += f"- 获得 {bonus['spiritual_power']} 灵力\n"
+            
+            return {
+                "result": BreakthroughResult.SUCCESS,
+                "old_realm": old_realm,
+                "new_realm": new_realm,
+                "message": message,
+            }
+        else:
+            return {
+                "result": BreakthroughResult.NOT_READY,
+                "message": "已达到最高境界，无法再突破。",
+            }
     
     def _breakthrough_failure(self) -> Dict[str, Any]:
         """突破失败"""
         # 损失部分经验
-        exp_loss = int(self.player.stats.exp * GAME_CONFIG["breakthrough"]["exp_loss_on_failure"])
+        exp_loss = int(self.player.current_exp * GAME_CONFIG["breakthrough"]["exp_loss_on_failure"])
+        self.player.current_exp -= exp_loss
         self.player.stats.exp -= exp_loss
         
         # 消耗时间
@@ -289,7 +296,8 @@ class CultivationSystem:
     def _breakthrough_injury(self) -> Dict[str, Any]:
         """突破受伤"""
         # 损失部分经验
-        exp_loss = int(self.player.stats.exp * GAME_CONFIG["breakthrough"]["exp_loss_on_failure"] * 2)
+        exp_loss = int(self.player.current_exp * GAME_CONFIG["breakthrough"]["exp_loss_on_failure"] * 2)
+        self.player.current_exp -= exp_loss
         self.player.stats.exp -= exp_loss
         
         # 受伤
@@ -368,13 +376,12 @@ class CultivationSystem:
             "karma": self.player.stats.karma,
         }
         success_rate = get_breakthrough_success_rate(
-            self.player.stats.realm_level,
+            self.player.cultivation_realm.level,
             player_stats
         )
         
         current_realm = self.player.get_realm_name()
-        next_realm_info = get_realm_info(self.player.stats.realm_level + 1)
-        next_realm = next_realm_info.name if next_realm_info else "未知"
+        next_realm = self.player.cultivation_realm.next_realm.name if self.player.cultivation_realm.next_realm else "未知"
         
         return {
             "can_breakthrough": True,

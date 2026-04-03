@@ -14,9 +14,10 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from game.combat import (
-    CombatSystem, CombatMode, CombatUnit, CombatResult,
+    CombatSystem, CombatMode, CombatUnit,
     create_npc_combat_unit, create_beast_combat_unit
 )
+from domain.value_objects.combat import CombatResult
 from game.execution_system import ExecutionChoice, execution_system
 from game.death_manager import death_manager
 
