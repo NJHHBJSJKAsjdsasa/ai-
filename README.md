@@ -45,7 +45,8 @@ pip install -r requirements.txt
 ```bash
 # 启动游戏
 cd ai_learning_system
-python main.py
+命令行模式python main.py
+窗口模式python main.py --gui
 ```
 
 ## 🎮 游戏指令
