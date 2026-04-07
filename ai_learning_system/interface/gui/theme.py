@@ -118,13 +118,13 @@ class Theme:
     HOVER_OPACITY = 0.8
 
     # ========== 尺寸配置 ==========
-    NAV_WIDTH = 180
-    NAV_COLLAPSED_WIDTH = 60
+    NAV_WIDTH = 160
+    NAV_COLLAPSED_WIDTH = 50
     HEADER_HEIGHT = 40
     STATUS_BAR_HEIGHT = 28
-    LOG_PANEL_HEIGHT = 150
-    CARD_PADDING = 15
-    SECTION_SPACING = 15
+    LOG_PANEL_HEIGHT = 120
+    CARD_PADDING = 12
+    SECTION_SPACING = 12
 
     # ========== 颜色字典（供面板使用）==========
     COLORS = {

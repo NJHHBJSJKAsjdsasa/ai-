@@ -141,77 +141,81 @@ class InventoryPanel(BasePanel):
         action_title = tk.Label(
             parent,
             text="操作",
-            **Theme.get_label_style("subtitle")
+            **Theme.get_label_style("subheading")
         )
-        action_title.pack(anchor=tk.W, pady=(0, 15))
+        action_title.pack(anchor=tk.W, pady=(0, Theme.SPACING_MD))
 
         # 使用按钮
         use_btn = tk.Button(
             parent,
             text="✨ 使用",
             command=self._on_use,
-            font=Theme.get_font(11),
+            font=Theme.get_font(Theme.FONT_SIZE_SM),
             bg=Theme.ACCENT_GOLD,
             fg=Theme.BG_PRIMARY,
             activebackground="#ffec8b",
             activeforeground=Theme.BG_PRIMARY,
             relief=tk.FLAT,
-            padx=15,
-            pady=8,
+            padx=Theme.SPACING_MD,
+            pady=Theme.SPACING_SM,
             cursor="hand2"
         )
-        use_btn.pack(fill=tk.X, pady=5)
+        use_btn.pack(fill=tk.X, pady=Theme.SPACING_XS)
 
         # 查看详情按钮
         detail_btn = tk.Button(
             parent,
             text="📋 详情",
             command=self._on_view_detail,
-            font=Theme.get_font(11),
+            font=Theme.get_font(Theme.FONT_SIZE_SM),
             bg=Theme.ACCENT_CYAN,
             fg=Theme.BG_PRIMARY,
             activebackground="#80e5ff",
             activeforeground=Theme.BG_PRIMARY,
             relief=tk.FLAT,
-            padx=15,
-            pady=8,
+            padx=Theme.SPACING_MD,
+            pady=Theme.SPACING_SM,
             cursor="hand2"
         )
-        detail_btn.pack(fill=tk.X, pady=5)
+        detail_btn.pack(fill=tk.X, pady=Theme.SPACING_XS)
 
         # 丢弃按钮
         drop_btn = tk.Button(
             parent,
             text="🗑️ 丢弃",
             command=self._on_drop,
-            font=Theme.get_font(11),
+            font=Theme.get_font(Theme.FONT_SIZE_SM),
             bg=Theme.ACCENT_RED,
             fg=Theme.TEXT_PRIMARY,
             activebackground="#ff6b6b",
             activeforeground=Theme.TEXT_PRIMARY,
             relief=tk.FLAT,
-            padx=15,
-            pady=8,
+            padx=Theme.SPACING_MD,
+            pady=Theme.SPACING_SM,
             cursor="hand2"
         )
-        drop_btn.pack(fill=tk.X, pady=5)
+        drop_btn.pack(fill=tk.X, pady=Theme.SPACING_XS)
+
+        # 分隔线
+        separator = tk.Frame(parent, bg=Theme.BORDER_DEFAULT, height=1)
+        separator.pack(fill=tk.X, pady=Theme.SPACING_MD)
 
         # 整理背包按钮
         sort_btn = tk.Button(
             parent,
             text="🔄 整理",
             command=self._on_sort,
-            font=Theme.get_font(11),
+            font=Theme.get_font(Theme.FONT_SIZE_SM),
             bg=Theme.BG_TERTIARY,
             fg=Theme.TEXT_PRIMARY,
             activebackground=Theme.ACCENT_GREEN,
             activeforeground=Theme.BG_PRIMARY,
             relief=tk.FLAT,
-            padx=15,
-            pady=8,
+            padx=Theme.SPACING_MD,
+            pady=Theme.SPACING_SM,
             cursor="hand2"
         )
-        sort_btn.pack(fill=tk.X, pady=5)
+        sort_btn.pack(fill=tk.X, pady=Theme.SPACING_XS)
 
     def _get_inventory(self):
         """获取背包 - 使用真实 Inventory 类"""

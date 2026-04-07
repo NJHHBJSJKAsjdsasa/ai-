@@ -100,17 +100,17 @@ class MainWindow:
         """设置主布局"""
         # 主框架
         main_frame = tk.Frame(self.root, bg=Theme.BG_PRIMARY)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=Theme.SPACING_MD, pady=Theme.SPACING_MD)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=Theme.SPACING_SM, pady=Theme.SPACING_SM)
 
         # 左侧导航面板
         self.nav_container = tk.Frame(main_frame, bg=Theme.BG_SECONDARY, width=Theme.NAV_WIDTH)
-        self.nav_container.pack(side=tk.LEFT, fill=tk.Y, padx=(0, Theme.SPACING_MD))
+        self.nav_container.pack(side=tk.LEFT, fill=tk.Y, padx=(0, Theme.SPACING_SM))
         self.nav_container.pack_propagate(False)
 
         # 创建Canvas用于滚动
         self.nav_canvas = tk.Canvas(
             self.nav_container, bg=Theme.BG_SECONDARY,
-            highlightthickness=0, width=Theme.NAV_WIDTH - 12
+            highlightthickness=0, width=Theme.NAV_WIDTH - 10
         )
         self.nav_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
@@ -125,10 +125,10 @@ class MainWindow:
         self.nav_canvas.configure(yscrollcommand=self.nav_scrollbar.set)
 
         # 创建导航框架（放在Canvas中）
-        self.nav_frame = tk.Frame(self.nav_canvas, bg=Theme.BG_SECONDARY, width=Theme.NAV_WIDTH - 20)
+        self.nav_frame = tk.Frame(self.nav_canvas, bg=Theme.BG_SECONDARY, width=Theme.NAV_WIDTH - 15)
         self.nav_canvas_window = self.nav_canvas.create_window(
             (0, 0), window=self.nav_frame, anchor=tk.NW,
-            width=Theme.NAV_WIDTH - 20
+            width=Theme.NAV_WIDTH - 15
         )
 
         self._setup_navigation()
@@ -151,13 +151,13 @@ class MainWindow:
             highlightbackground=Theme.BORDER_DEFAULT,
             highlightthickness=1
         )
-        self.content_frame.pack(fill=tk.BOTH, expand=True, pady=(0, Theme.SPACING_MD))
+        self.content_frame.pack(fill=tk.BOTH, expand=True, pady=(0, Theme.SPACING_SM))
 
         # 初始化各个面板
         self._init_panels()
 
         # 底部日志面板
-        self.log_panel = LogPanel(right_frame, bg=Theme.BG_SECONDARY)
+        self.log_panel = LogPanel(right_frame, bg=Theme.BG_SECONDARY, height=Theme.LOG_PANEL_HEIGHT)
         self.log_panel.pack(fill=tk.X, side=tk.BOTTOM)
 
         # 默认显示状态面板
@@ -167,16 +167,16 @@ class MainWindow:
         """设置导航按钮"""
         # 标题区域 - 增强视觉效果
         title_frame = tk.Frame(self.nav_frame, bg=Theme.BG_SECONDARY)
-        title_frame.pack(fill=tk.X, pady=Theme.SPACING_LG, padx=Theme.SPACING_MD)
+        title_frame.pack(fill=tk.X, pady=Theme.SPACING_MD, padx=Theme.SPACING_SM)
 
         # 标题背景装饰
         title_decor = tk.Frame(title_frame, bg=Theme.ACCENT_GOLD, height=2)
-        title_decor.pack(fill=tk.X, pady=(0, Theme.SPACING_SM))
+        title_decor.pack(fill=tk.X, pady=(0, Theme.SPACING_XS))
 
         title_label = tk.Label(
             title_frame,
             text="☯ 修仙系统",
-            font=Theme.get_font(Theme.FONT_SIZE_LG, bold=True),
+            font=Theme.get_font(Theme.FONT_SIZE_MD, bold=True),
             bg=Theme.BG_SECONDARY,
             fg=Theme.ACCENT_GOLD
         )
@@ -184,7 +184,7 @@ class MainWindow:
 
         # 分隔线
         separator = tk.Frame(self.nav_frame, bg=Theme.BORDER_DEFAULT, height=1)
-        separator.pack(fill=tk.X, padx=Theme.SPACING_MD, pady=Theme.SPACING_SM)
+        separator.pack(fill=tk.X, padx=Theme.SPACING_SM, pady=Theme.SPACING_XS)
 
         # 导航按钮分组配置 - 增强视觉层次
         nav_groups = [
@@ -222,19 +222,21 @@ class MainWindow:
         for group_name, items in nav_groups:
             # 分组标签
             group_frame = tk.Frame(self.nav_frame, bg=Theme.BG_SECONDARY)
-            group_frame.pack(fill=tk.X, padx=Theme.SPACING_MD, pady=(Theme.SPACING_MD, Theme.SPACING_XS))
+            group_frame.pack(fill=tk.X, padx=Theme.SPACING_SM, pady=(Theme.SPACING_MD, Theme.SPACING_XS))
             
             group_label = tk.Label(
                 group_frame,
-                text=f"— {group_name} —",
-                **Theme.get_button_style("nav_group")
+                text=f"{group_name}",
+                font=Theme.get_font(Theme.FONT_SIZE_XS, bold=True),
+                bg=Theme.BG_SECONDARY,
+                fg=Theme.TEXT_DIM
             )
             group_label.pack(fill=tk.X, anchor="w")
             
             # 分组内按钮
             for nav_id, icon, text, command in items:
                 btn = self._create_nav_button(self.nav_frame, icon, text, command, nav_id)
-                btn.pack(fill=tk.X, padx=Theme.SPACING_MD, pady=Theme.SPACING_XS)
+                btn.pack(fill=tk.X, padx=Theme.SPACING_SM, pady=1)
                 self.nav_buttons[nav_id] = btn
 
         # 底部区域
@@ -243,21 +245,21 @@ class MainWindow:
 
         # 分隔线
         separator2 = tk.Frame(bottom_frame, bg=Theme.BORDER_DEFAULT, height=1)
-        separator2.pack(fill=tk.X, padx=Theme.SPACING_MD, pady=Theme.SPACING_SM)
+        separator2.pack(fill=tk.X, padx=Theme.SPACING_SM, pady=Theme.SPACING_XS)
 
         # 折叠按钮
         collapse_btn = self._create_nav_button(
             bottom_frame, "◀", "收起", self._toggle_nav, "collapse",
             bg=Theme.BG_TERTIARY
         )
-        collapse_btn.pack(fill=tk.X, padx=Theme.SPACING_MD, pady=Theme.SPACING_XS)
+        collapse_btn.pack(fill=tk.X, padx=Theme.SPACING_SM, pady=Theme.SPACING_XS)
 
         # 退出按钮
         quit_btn = self._create_nav_button(
             bottom_frame, "🚪", "退出", self._on_close, "quit",
             bg=Theme.ACCENT_RED
         )
-        quit_btn.pack(fill=tk.X, padx=Theme.SPACING_MD, pady=Theme.SPACING_XS)
+        quit_btn.pack(fill=tk.X, padx=Theme.SPACING_SM, pady=Theme.SPACING_XS)
 
     def _init_panels(self):
         """初始化各个功能面板"""
@@ -421,7 +423,33 @@ class MainWindow:
     def _create_nav_button(self, parent, icon, text, command, nav_id, bg=None):
         """创建导航按钮"""
         is_active = nav_id == self.current_panel
-        style = Theme.get_button_style("nav_active" if is_active else "nav")
+        
+        # 自定义按钮样式，更加紧凑
+        base_style = {
+            "font": Theme.get_font(Theme.FONT_SIZE_SM),
+            "relief": "flat",
+            "cursor": "hand2",
+            "padx": Theme.SPACING_SM,
+            "pady": Theme.SPACING_XS,
+            "anchor": "w"
+        }
+        
+        if is_active:
+            style = {
+                **base_style,
+                "bg": Theme.BG_TERTIARY,
+                "fg": Theme.ACCENT_GOLD,
+                "activebackground": Theme.BG_ELEVATED,
+                "activeforeground": Theme.ACCENT_GOLD
+            }
+        else:
+            style = {
+                **base_style,
+                "bg": Theme.BG_SECONDARY,
+                "fg": Theme.TEXT_SECONDARY,
+                "activebackground": Theme.BG_TERTIARY,
+                "activeforeground": Theme.ACCENT_CYAN
+            }
 
         if bg:
             style = {**style, "bg": bg}
