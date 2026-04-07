@@ -225,15 +225,15 @@ class InventoryPanel(BasePanel):
         inventory = self._get_inventory()
         if inventory and hasattr(inventory, 'items'):
             if isinstance(inventory.items, dict):
-                # inventory.items 的格式是 {item_name: {"count": int, "data": Dict}}
+                # inventory.items 的格式是 {item_name: InventoryItem}
                 items_list = []
-                for item_name, item_info in inventory.items.items():
+                for item_name, item in inventory.items.items():
                     # 创建一个包含所有必要属性的对象
-                    item_data = item_info.get('data', {})
+                    item_data = item.item_data
                     # 构造一个简单的对象包装器
                     item_obj = type('ItemWrapper', (), {})()
                     item_obj.name = item_name
-                    item_obj.quantity = item_info.get('count', 1)
+                    item_obj.quantity = item.count
                     item_obj.item_type = item_data.get('type', 'other')
                     item_obj.description = item_data.get('description', '暂无描述')
                     item_obj.rarity = item_data.get('rarity', '普通')
@@ -458,10 +458,11 @@ class InventoryPanel(BasePanel):
             inventory = self._get_inventory()
             if inventory:
                 try:
-                    if inventory.remove_item(name):
+                    success, msg = inventory.remove_item(name)
+                    if success:
                         self.log(f"你丢弃了 {name}", "system")
                     else:
-                        self.log(f"丢弃 {name} 失败", "system")
+                        self.log(f"丢弃 {name} 失败: {msg}", "system")
                     self.refresh()
                 except Exception as e:
                     messagebox.showerror("错误", f"丢弃失败: {e}")

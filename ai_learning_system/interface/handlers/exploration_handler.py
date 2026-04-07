@@ -54,10 +54,11 @@ class ExplorationHandler(BaseHandler):
                     }
 
                     # 添加到背包
-                    if self.player.inventory.add_generated_item(item.name, item_data, 1):
+                    success, msg = self.player.inventory.add_generated_item(item.name, item_data, 1)
+                    if success:
                         print(f"  ✓ {item.name} 已添加到背包")
                     else:
-                        print(f"  ✗ {item.name} 添加失败")
+                        print(f"  ✗ {item.name} 添加失败: {msg}")
                 
                 # 保存游戏以持久化新获得的物品
                 try:

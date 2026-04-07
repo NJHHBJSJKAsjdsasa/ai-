@@ -24,8 +24,10 @@ from .items import (
     Item, ItemType, ItemRarity, ITEMS_DB,
     get_item, get_items_by_type, get_items_by_rarity,
     get_items_by_level, search_items, get_all_items,
-    calculate_item_value, Inventory
+    calculate_item_value
 )
+
+from game.inventory import Inventory
 from .enemies import (
     Beast, BeastType, BEASTS_DB,
     get_beast, get_beasts_by_realm, get_beasts_by_type,

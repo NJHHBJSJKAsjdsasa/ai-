@@ -18,8 +18,10 @@ from config import (
     get_realm_info, get_realm_title, get_realm_icon,
     generate_spirit_root, get_spirit_root_info,
     calculate_cultivation_speed, GAME_CONFIG,
-    TechniqueLearningRecord, Inventory
+    TechniqueLearningRecord
 )
+
+from game.inventory import Inventory
 
 
 @dataclass
@@ -498,10 +500,10 @@ class Player:
         if not item:
             return False, f"道具《{item_name}》不存在"
         
-        if self.inventory.add_item(item_name, count):
-            return True, f"获得 {item_name} x{count}"
-        else:
-            return False, "背包已满"
+        # 转换为字典格式
+        item_data = item.to_dict()
+        success, msg = self.inventory.add_item(item_name, count, item_data)
+        return success, msg
     
     def use_item(self, item_name: str) -> Tuple[bool, str]:
         """
@@ -652,8 +654,8 @@ class Player:
     def get_inventory_info(self) -> str:
         """获取背包信息"""
         info = ["背包内容："]
-        for item_name, data in self.inventory.items.items():
-            info.append(f"  {item_name} x{data['count']}")
+        for item_name, item in self.inventory.items.items():
+            info.append(f"  {item_name} x{item.count}")
         
         if not self.inventory.items:
             info.append("  （空）")
@@ -826,11 +828,7 @@ class Player:
                 "learned": self.techniques.learned_techniques,
                 "progress": self.techniques.learning_progress
             },
-            "inventory": {
-                "items": self.inventory.items,
-                "generated_items": self.inventory.generated_items,
-                "max_slots": self.inventory.max_slots
-            },
+            "inventory": self.inventory.to_dict(),
             "equipped": self.equipped_treasures
         }
     
@@ -899,28 +897,7 @@ class Player:
         # 加载背包数据
         if "inventory" in data:
             inv_data = data["inventory"]
-            # 处理新旧格式兼容
-            if isinstance(inv_data, dict):
-                if "items" in inv_data:
-                    self.inventory.items = inv_data.get("items", {})
-                    self.inventory.generated_items = inv_data.get("generated_items", {})
-                    self.inventory.max_slots = inv_data.get("max_slots", 50)
-                    
-                    # 修复：如果generated_items为空，从items中重建
-                    if not self.inventory.generated_items and self.inventory.items:
-                        for item_name, item_info in self.inventory.items.items():
-                            item_data = item_info.get("data", {})
-                            if item_data:
-                                self.inventory.generated_items[item_name] = item_data
-                else:
-                    # 旧格式直接是items字典
-                    self.inventory.items = inv_data
-                    
-                    # 修复：从items中重建generated_items
-                    for item_name, item_info in self.inventory.items.items():
-                        item_data = item_info.get("data", {})
-                        if item_data:
-                            self.inventory.generated_items[item_name] = item_data
+            self.inventory.from_dict(inv_data)
         
         # 加载装备数据
         if "equipped" in data:
